@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <title>一键寻车 - 竖屏版</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:"微软雅黑";}
+        body{
+            background:#f5f9ff;
+            padding:12px;
+            min-height:100vh;
+        }
+        .back{
+            padding:8px 12px;
+            background:#fff;
+            border:2px solid #2563eb;
+            border-radius:8px;
+            color:#2563eb;
+            display:inline-block;
+            cursor:pointer;
+            margin-bottom:10px;
+        }
+        h2{
+            text-align:center;
+            color:#1a5fb4;
+            margin-bottom:10px;
+            font-size:20px;
+        }
+        .search-box{
+            display:flex;
+            gap:8px;
+            margin-bottom:12px;
+        }
+        #carNum{
+            flex:1;
+            height:44px;
+            padding:0 12px;
+            border:2px dashed #2563eb;
+            border-radius:8px;
+            font-size:16px;
+            outline:none;
+        }
+        .search-btn{
+            height:44px;
+            padding:0 16px;
+            background:#2563eb;
+            color:#fff;
+            border:none;
+            border-radius:8px;
+            font-size:16px;
+            cursor:pointer;
+        }
+
+        .park-map{
+            width:100%;
+            height:70vh;
+            max-width:400px;
+            margin:0 auto;
+            background:#fff;
+            border-radius:12px;
+            position:relative;
+            box-shadow:0 2px 10px rgba(37,99,235,0.15);
+            overflow:hidden;
+        }
+
+        .area-block{
+            position:absolute;
+            left:20px;
+            right:20px;
+            height:120px;
+            border-radius:8px;
+            padding:8px;
+        }
+        .area-A{top:20px;background:rgba(255,70,70,0.28);}
+        .area-B{top:160px;background:rgba(255,160,60,0.25);}
+        .area-C{top:300px;background:rgba(70,210,90,0.22);}
+        .area-D{top:440px;background:rgba(220,20,20,0.32);}
+
+        .park-slot{
+            position:absolute;
+            width:50px;
+            height:30px;
+            border-radius:6px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:12px;
+            font-weight:bold;
+            border:2px dashed #b8cdf5;
+            background:#ffffff;
+        }
+        .slot-free{background:#e6ffed;border-color:#2ed573;color:#1a5fb4;}
+        .slot-order{background:#cce5ff;border-color:#4096ff;color:#0050b3;}
+        .slot-used{background:#ffe8e8;border-color:#ff6b6b;color:#d63031;}
+
+        .nav-path{
+            position:absolute;
+            background:linear-gradient(90deg,#2563eb,#74b9ff);
+            height:5px;
+            border-radius:3px;
+            z-index:8;
+            box-shadow:0 0 8px rgba(37,99,235,0.4);
+        }
+
+        .flow-dot{
+            position:absolute;
+            width:14px;
+            height:14px;
+            border-radius:50%;
+            background:#00e676;
+            box-shadow:0 0 8px #00e676;
+            z-index:9;
+        }
+
+        .target-focus{
+            animation:focusPulse 1s infinite;
+            border-color:#ff9800 !important;
+            z-index:10;
+        }
+        @keyframes focusPulse{
+            0%{box-shadow:0 0 0 0 rgba(255,152,0,0.5);}
+            100%{box-shadow:0 0 0 12px rgba(255,152,0,0);}
+        }
+
+        .map-entrance{
+            position:absolute;
+            left:10px;
+            top:417px;
+            background:#00c853;
+            color:#fff;
+            padding:4px 10px;
+            border-radius:12px;
+            font-size:12px;
+            font-weight:bold;
+            z-index:20;
+        }
+        .map-exit{
+            position:absolute;
+            right:5px;
+            top:130px;
+            background:#f44336;
+            color:#fff;
+            padding:4px 10px;
+            border-radius:12px;
+            font-size:12px;
+            font-weight:bold;
+            z-index:20;
+        }
+
+        .modal-overlay{
+            position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:999;
+        }
+        .modal-box{
+            background:#fff;padding:20px;border-radius:12px;text-align:center;width:80%;max-width:300px;
+        }
+        .modal-box p{
+            font-size:16px;margin-bottom:20px;
+        }
+        .modal-buttons{
+            display:flex;justify-content:space-around;
+        }
+        .modal-btn{
+            padding:8px 20px;border:none;border-radius:8px;cursor:pointer;font-size:16px;
+        }
+        .btn-yes{background:#2563eb;color:#fff;}
+        .btn-no{background:#ccc;color:#333;}
+    </style>
+</head>
+<body>
+    <div class="back" onclick="history.back()">← 返回首页</div>
+    <h2>智能车场导航寻车</h2>
+
+    <div class="search-box">
+        <input type="text" id="carNum" placeholder="输入车位编号：A1/B3/C2">
+        <button class="search-btn" onclick="startNavigate()">开启导航寻车</button>
+    </div>
+
+    <div class="park-map" id="parkMap">
+        <div class="area-block area-A"></div>
+        <div class="area-block area-B"></div>
+        <div class="area-block area-C"></div>
+        <div class="area-block area-D"></div>
+        <div class="map-entrance">入口</div>
+        <div class="map-exit">出口</div>
+    </div>
+
+<script>
+    const usedPark = ['A1','A2','A4','A7','B3','B5','C2','D1','D2','D3','D4','D6','D8'];
+    const orderPark = ['B1','C3'];
+    const parkPosition = {
+        A1:{x:30,y:50},A2:{x:90,y:50},A3:{x:150,y:50},A4:{x:210,y:50},
+        B1:{x:30,y:190},B2:{x:90,y:190},B3:{x:150,y:190},B4:{x:210,y:190},
+        C1:{x:30,y:330},C2:{x:90,y:330},C3:{x:150,y:330},C4:{x:210,y:330},
+        D1:{x:30,y:470},D2:{x:90,y:470},D3:{x:150,y:470},D4:{x:210,y:470}
+    };
+
+    // 入口坐标保持不变
+    const startPos = {x:20, y:417};
+    // 微调出口X坐标，路径终点对齐出口按钮
+    const exitPos = {x:365, y:135};
+
+    function initParkSlot(){
+        const map = document.getElementById('parkMap');
+        map.querySelectorAll('.park-slot').forEach(item=>item.remove());
+        for(let key in parkPosition){
+            let pos = parkPosition[key];
+            let slot = document.createElement('div');
+            slot.className = 'park-slot';
+            slot.style.left = pos.x + 'px';
+            slot.style.top = pos.y + 'px';
+            slot.innerText = key;
+            if(usedPark.includes(key)) slot.classList.add('slot-used');
+            else if(orderPark.includes(key)) slot.classList.add('slot-order');
+            else slot.classList.add('slot-free');
+            slot.dataset.pid = key;
+            map.appendChild(slot);
+        }
+    }
+
+    function clearNav(){
+        document.querySelectorAll('.nav-path,.flow-dot,.target-focus').forEach(el=>el.remove());
+    }
+
+    // 路径逻辑：竖向对齐后横向直达出口
+    function getPathPoints(sx,sy,ex,ey){
+        let pts = [];
+        pts.push({x:sx,y:sy});
+        pts.push({x:sx,y:ey});
+        pts.push({x:ex,y:ey});
+        return pts;
+    }
+
+    function drawPathLines(points){
+        const map = document.getElementById('parkMap');
+        for(let i=0;i<points.length-1;i++){
+            let p1 = points[i];
+            let p2 = points[i+1];
+            let line = document.createElement('div');
+            line.className = 'nav-path';
+            if(p1.x === p2.x){
+                line.style.left = p1.x + 'px';
+                line.style.top = Math.min(p1.y,p2.y) + 'px';
+                line.style.width = '5px';
+                line.style.height = Math.abs(p2.y-p1.y) + 'px';
+            }else{
+                line.style.left = Math.min(p1.x,p2.x) + 'px';
+                line.style.top = p1.y + 'px';
+                line.style.height = '5px';
+                line.style.width = Math.abs(p2.x-p1.x) + 'px';
+            }
+            map.appendChild(line);
+        }
+    }
+
+    function showConfirm(message, onYes, onNo){
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        const box = document.createElement('div');
+        box.className = 'modal-box';
+        box.innerHTML = `
+            <p>${message}</p >
+            <div class="modal-buttons">
+                <button class="modal-btn btn-yes">是</button>
+                <button class="modal-btn btn-no">否</button>
+            </div>
+        `;
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+        box.querySelector('.btn-yes').onclick = () => { overlay.remove(); onYes(); };
+        box.querySelector('.btn-no').onclick = () => { overlay.remove(); onNo(); };
+    }
+
+    function animateDotAlongPath(points){
+        const map = document.getElementById('parkMap');
+        let dot = document.createElement('div');
+        dot.className = 'flow-dot';
+        dot.style.left = points[0].x + 'px';
+        dot.style.top = points[0].y + 'px';
+        map.appendChild(dot);
+        let idx = 0;
+        const speed = 2;
+        let cur = {...points[0]};
+        function move(){
+            if(idx >= points.length - 1){
+                showConfirm("已到达目标车位，是否需要导航前往出口？",
+                ()=>{
+                    let exitPath = getPathPoints(cur.x,cur.y,exitPos.x,exitPos.y);
+                    drawPathLines(exitPath);
+                    animateExitDot(exitPath);
+                },
+                ()=>{
+                    alert("寻车导航已结束");
+                });
+                return;
+            }
+            let target = points[idx+1];
+            let dx = target.x - cur.x;
+            let dy = target.y - cur.y;
+            let dist = Math.sqrt(dx*dx+dy*dy);
+            if(dist < speed){ cur.x=target.x; cur.y=target.y; idx++; }
+            else{ cur.x += (dx/dist)*speed; cur.y += (dy/dist)*speed; }
+            dot.style.left = cur.x + 'px';
+            dot.style.top = cur.y + 'px';
+            requestAnimationFrame(move);
+        }
+        move();
+    }
+
+    function animateExitDot(points){
+        const map = document.getElementById('parkMap');
+        let dot = document.createElement('div');
+        dot.className = 'flow-dot';
+        dot.style.left = points[0].x + 'px';
+        dot.style.top = points[0].y + 'px';
+        map.appendChild(dot);
+        let idx=0; const speed=2; let cur={...points[0]};
+        function moveExit(){
+            if(idx >= points.length-1){ alert("已成功到达车场出口"); return; }
+            let target=points[idx+1];
+            let dx=target.x-cur.x, dy=target.y-cur.y;
+            let dist=Math.sqrt(dx*dx+dy*dy);
+            if(dist<speed){cur.x=target.x;cur.y=target.y;idx++;}
+            else{cur.x+=(dx/dist)*speed;cur.y+=(dy/dist)*speed;}
+            dot.style.left=cur.x+'px'; dot.style.top=cur.y+'px';
+            requestAnimationFrame(moveExit);
+        }
+        moveExit();
+    }
+
+    function startNavigate(){
+        let inputId = document.getElementById('carNum').value.trim().toUpperCase();
+        if(!parkPosition[inputId]){ alert('无此车位编号，请重新输入'); return; }
+        let target = parkPosition[inputId];
+        clearNav();
+        let pts = getPathPoints(startPos.x,startPos.y,target.x+25,target.y+15);
+        drawPathLines(pts);
+        animateDotAlongPath(pts);
+        let targetDom = document.querySelector(`[data-pid="${inputId}"]`);
+        targetDom.classList.add('target-focus');
+    }
+
+    window.onload = function(){ initParkSlot(); }
+</script>
+</body>
+</html>

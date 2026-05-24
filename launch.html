@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <title>启动页</title>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body{
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #000614;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        /* 立体透视网格基底 */
+        .grid-3d{
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(66,156,255,0.1) 1px,transparent 1px),
+                linear-gradient(90deg,rgba(66,156,255,0.1) 1px,transparent 1px);
+            background-size: 50px 50px;
+            transform: perspective(800px) rotateX(55deg);
+            transform-origin: center bottom;
+        }
+        /* 悬浮几何轮廓 */
+        .geo{
+            position: absolute;
+            border: 1px solid rgba(92,178,255,0.25);
+        }
+        .geo1{
+            width: 130px;
+            height: 130px;
+            top: 15%;
+            left: 10%;
+            transform: rotate(20deg);
+        }
+        .geo2{
+            width: 110px;
+            height: 110px;
+            bottom: 18%;
+            right: 12%;
+            border-radius: 50%;
+        }
+        /* 光影射线 */
+        .ray{
+            position: absolute;
+            height: 1px;
+            background: linear-gradient(90deg,transparent,#72b8ff,transparent);
+            opacity: 0.3;
+        }
+        .r1{width: 60%;top: 38%;left: 20%;transform: rotate(25deg);}
+        .r2{width: 55%;bottom: 32%;right: 18%;transform: rotate(-28deg);}
+        /* 竖向数字数据流 */
+        .code-text{
+            position: absolute;
+            color: rgba(110,195,255,0.2);
+            font-family: monospace;
+            font-size: 12px;
+            writing-mode: vertical-rl;
+            letter-spacing: 3px;
+        }
+        .c1{left: 6%;top: 25%;}
+        .c2{right: 6%;bottom: 22%;}
+        /* 中心光晕 */
+        .center-light{
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle,rgba(50,140,255,0.18),transparent 65%);
+        }
+        /* 图标样式 */
+        .icon-box{
+            width: 38vw;
+            max-width: 170px;
+            z-index: 9;
+            cursor: pointer;
+        }
+        .logo-img{
+            width: 100%;
+            height: auto;
+            border-radius: 20px;
+            display: block;
+            box-shadow: 0 0 28px rgba(70,160,255,0.55);
+            transition: 0.3s ease;
+        }
+        .logo-img:hover{
+            transform: scale(1.05);
+            box-shadow: 0 0 45px rgba(70,160,255,0.7);
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-3d"></div>
+    <div class="geo geo1"></div>
+    <div class="geo geo2"></div>
+    <div class="ray r1"></div>
+    <div class="ray r2"></div>
+    <div class="code-text c1">1011 0010 1101</div>
+    <div class="code-text c2">0100 1110 0011</div>
+    <div class="center-light"></div>
+
+    <a href="index.html" class="icon-box">
+        <img src="images/logo.png" alt="图标" class="logo-img">
+    </a>
+</body>
+</html>

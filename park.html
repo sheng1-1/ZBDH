@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+    <title>空位识别</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:"微软雅黑";}
+        body{
+            background:linear-gradient(#e6f4ff,#fff);
+            padding:15px;
+            min-height:100vh;
+            position: relative;
+        }
+        /* 右上角播报框 - 手机端适配 */
+        .vertical-scroll-box{
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            width: 160px;
+            height: 180px;
+            background: rgba(0, 102, 255, 0.9);
+            border-radius: 8px;
+            overflow: hidden;
+            z-index: 99;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .scroll-title{
+            text-align: center;
+            color: #fff;
+            font-size: 13px;
+            font-weight: bold;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.3);
+        }
+        .scroll-content{
+            height: calc(100% - 34px);
+            overflow: hidden;
+        }
+        .vertical-scroll-text{
+            padding: 8px 10px;
+            color: #fff;
+            font-size: 12px;
+            line-height: 1.8;
+            animation: rollVertical 60s linear infinite;
+        }
+        @keyframes rollVertical{
+            0%{transform: translateY(0);}
+            100%{transform: translateY(-100%);}
+        }
+        .back{
+            padding:8px 15px;
+            background:#fff;
+            border:2px solid #2563eb;
+            border-radius:8px;
+            color:#2563eb;
+            display:inline-block;
+            cursor:pointer;
+            margin-bottom:20px;
+        }
+        h2{
+            text-align:center;
+            color:#1a5fb4;
+            margin-bottom:15px;
+            font-size:19px;
+            padding-right: 170px;
+        }
+        .state-info{
+            text-align:center;
+            margin:10px 0;
+            font-size:13px;
+            color:#555;
+        }
+        .area{
+            padding:10px;
+            border-radius:10px;
+            margin:15px auto;
+            position:relative;
+            max-width:400px;
+        }
+        .area-a{background:rgba(255,70,70,0.28);}
+        .area-b{background:rgba(255,160,60,0.25);}
+        .area-c{background:rgba(70,210,90,0.22);}
+        .area-d{background:rgba(220,20,20,0.32);}
+        .area-title{
+            font-size:16px;
+            color:#0066ff;
+            margin-bottom:12px;
+            border-left:4px solid #2563eb;
+            padding-left:8px;
+        }
+        .park-list{
+            display:grid;
+            grid-template-columns:repeat(4,1fr);
+            gap:15px;
+        }
+        .park-item{
+            aspect-ratio:2/3;
+            border-radius:10px;
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:center;
+            cursor:pointer;
+            transition:0.3s;
+            border:2px dashed #c0d8f5;
+        }
+        .free{background:#e6ffed;border-color:#2ed573;}
+        .order{background:#cce5ff;border-color:#4096ff;}
+        .used{background:#ffe6e6;border-color:#ff4757;cursor:not-allowed;}
+        .fire{
+            background:repeating-linear-gradient(45deg,#fef0f0,#fef0f0 6px,#fddddd 6px,#fddddd 12px);
+            border:2px solid #ff2d2d;
+            cursor:not-allowed;
+        }
+        .num{font-size:16px;font-weight:bold;margin-bottom:4px;}
+        .free .num{color:#1a5fb4;}
+        .order .num{color:#0050b3;}
+        .used .num{color:#dd3333;}
+        .fire .num{color:#ff2d2d;}
+        .tip{font-size:12px;color:#444;}
+        .entrance{position:absolute;left:-15px;bottom:310px;background:#00c853;color:#fff;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:bold;z-index:20;}
+        .exit{position:absolute;right:-15px;top:310px;background:#f44336;color:#fff;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:bold;z-index:20;}
+    </style>
+</head>
+<body>
+    <div class="vertical-scroll-box">
+        <div class="scroll-title">实时车场播报</div>
+        <div class="scroll-content">
+            <div class="vertical-scroll-text">
+A1 粤A8923K 13:20<br>
+A2 粤A5671F 12:53<br>
+A4 粤A7721D 14:35<br>
+A7 粤A6653H 13:08<br>
+B3 粤B2203S 12:18<br>
+B5 粤B1126D 13:49<br>
+C2 粤C2271H 14:58<br>
+D1 粤D3369K 11:45<br>
+D2 粤D6612S 10:33<br>
+D3 粤D9927F 12:26<br>
+D4 粤D2258D 13:11<br>
+D6 粤D1184H 15:17<br>
+D8 粤D8856K 11:22<br>
+A8/C5 消防通道禁停<br>
+空闲车位推荐C区
+            </div>
+        </div>
+    </div>
+
+    <div class="back" onclick="history.back()">← 返回首页</div>
+    <h2>智能车位选择系统</h2>
+    <div class="state-info">绿色空闲 | 浅蓝已预约 | 红色已占用 | 红斜纹区域为消防通道</div>
+
+    <div class="area area-a">
+        <div class="exit">出口</div>
+        <div class="area-title">A分区 — 高度拥堵</div>
+        <div class="park-list" id="zoneA"></div>
+    </div>
+    <div class="area area-b">
+        <div class="area-title">B分区 — 车流适中</div>
+        <div class="park-list" id="zoneB"></div>
+    </div>
+    <div class="area area-c">
+        <div class="area-title">C分区 — 车位空闲</div>
+        <div class="park-list" id="zoneC"></div>
+    </div>
+    <div class="area area-d">
+        <div class="entrance">入口</div>
+        <div class="area-title">D分区 — 车位爆满</div>
+        <div class="park-list" id="zoneD"></div>
+    </div>
+
+<script>
+    const areaArr = ['A','B','C','D'];
+    const oneAreaNum = 8;
+    const usedPark = ['A1','A2','A4','A7','B3','B5','C2','D1','D2','D3','D4','D6','D8'];
+    const firePark = ["A8","C5"];
+    let orderPark = [];
+
+    areaArr.forEach(area=>{
+        let wrap = document.getElementById('zone'+area);
+        for(let i=1;i<=oneAreaNum;i++){
+            let pid = area + i;
+            let div = document.createElement('div');
+
+            if(firePark.includes(pid)){
+                div.className = "park-item fire";
+                div.innerHTML = `<div class="num">${pid}</div><div class="tip">消防通道</div>`;
+                div.onclick = ()=>alert(pid+" 是消防通道，禁止占用！");
+            }
+            else if(usedPark.includes(pid)){
+                div.className = "park-item used";
+                div.innerHTML = `<div class="num">${pid}</div><div class="tip">已占用</div>`;
+            }else if(orderPark.includes(pid)){
+                div.className = "park-item order";
+                div.innerHTML = `<div class="num">${pid}</div><div class="tip">已预约</div>`;
+            }else{
+                div.className = "park-item free";
+                div.innerHTML = `<div class="num">${pid}</div>`;
+            }
+
+            div.dataset.id = pid;
+            div.onclick = function(){
+                let id = this.dataset.id;
+                if(this.classList.contains('used')){
+                    alert(id+"车位已被占用，无法预约");
+                    return;
+                }
+                if(this.classList.contains('order')){
+                    this.classList.remove('order');
+                    let t = this.querySelector('.tip');
+                    t&&t.remove();
+                    orderPark = orderPark.filter(item=>item!==id);
+                    alert("取消预约成功");
+                    return;
+                }
+                document.querySelectorAll('.park-item.order').forEach(item=>{
+                    item.classList.remove('order');
+                    let tt = item.querySelector('.tip');
+                    tt&&tt.remove();
+                });
+                orderPark = [];
+                orderPark.push(id);
+                this.classList.add('order');
+                let tipDom = document.createElement('div');
+                tipDom.className = "tip";
+                tipDom.innerText = "已预约";
+                this.appendChild(tipDom);
+                alert("预约车位成功");
+            }
+            wrap.appendChild(div);
+        }
+    })
+</script>
+</body>
+</html>

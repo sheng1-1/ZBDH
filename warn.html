@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <title>异常预警 - 竖屏版</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:"微软雅黑";}
+        body{
+            background:#f5f9ff;
+            padding:12px;
+            min-height:100vh;
+        }
+        .back{
+            padding:8px 12px;
+            background:#fff;
+            border:2px solid #2563eb;
+            border-radius:8px;
+            color:#2563eb;
+            display:inline-block;
+            cursor:pointer;
+            margin-bottom:10px;
+        }
+        h2{
+            text-align:center;
+            color:#1a5fb4;
+            margin-bottom:10px;
+            font-size:20px;
+        }
+        /* 车场地图容器 */
+        .park-map{
+            width:100%;
+            height:62vh;
+            max-width:400px;
+            margin:0 auto 15px;
+            background:#fff;
+            border-radius:12px;
+            position:relative;
+            box-shadow:0 2px 10px rgba(37,99,235,0.15);
+            overflow:hidden;
+        }
+        .area-block{
+            position:absolute;
+            left:15px;
+            right:15px;
+            height:85px;
+            border-radius:8px;
+            padding:8px;
+        }
+        /* 均匀分配四个区域间距，排布整齐不拥挤 */
+        .area-A{top:30px;background:rgba(255,70,70,0.28);}
+        .area-B{top:135px;background:rgba(255,160,60,0.25);}
+        .area-C{top:240px;background:rgba(70,210,90,0.22);}
+        .area-D{top:345px;background:rgba(220,20,20,0.32);}
+
+        /* 区域文字标注 */
+        .area-name{
+            position:absolute;
+            left:20px;
+            font-size:14px;
+            font-weight:bold;
+            color:#333;
+        }
+        .name-A{top:35px;}
+        .name-B{top:140px;}
+        .name-C{top:245px;}
+        .name-D{top:350px;}
+
+        /* 基础车位样式 */
+        .park-slot{
+            position:absolute;
+            width:50px;
+            height:30px;
+            border-radius:6px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:12px;
+            font-weight:bold;
+            border:2px dashed #b8cdf5;
+            background:#ffffff;
+        }
+        .slot-normal{background:#e6ffed;border-color:#2ed573;color:#1a5fb4;}
+        /* 异常车位标识 */
+        .slot-overtime{background:#fff3cd;border-color:#ffc107;color:#856404;}
+        .slot-fire{background:#f8d7da;border-color:#dc3545;color:#721c24;}
+        .slot-parkerr{background:#ffeaa7;border-color:#fd79a8;color:#6c5ce7;}
+        .slot-device{background:#d1ecf1;border-color:#20c997;color:#0c5460;}
+
+        .map-entrance{
+            position:absolute;
+            left:15px;
+            top:420px;
+            background:#00c853;
+            color:#fff;
+            padding:4px 10px;
+            border-radius:12px;
+            font-size:12px;
+            font-weight:bold;
+            z-index:20;
+        }
+        .map-exit{
+            position:absolute;
+            right:15px;
+            top:75px;
+            background:#f44336;
+            color:#fff;
+            padding:4px 10px;
+            border-radius:12px;
+            font-size:12px;
+            font-weight:bold;
+            z-index:20;
+        }
+        /* 异常明细列表 */
+        .warn-list{
+            max-width:400px;
+            margin:0 auto;
+            background:#fff;
+            border-radius:12px;
+            padding:12px;
+            box-shadow:0 2px 10px rgba(37,99,235,0.15);
+        }
+        .warn-item{
+            padding:10px 6px;
+            border-bottom:1px solid #eee;
+            font-size:14px;
+            line-height:1.5;
+        }
+        .warn-item:last-child{
+            border-bottom:none;
+        }
+        /* 图例说明 */
+        .legend{
+            display:flex;
+            flex-wrap:wrap;
+            gap:8px;
+            max-width:400px;
+            margin:0 auto 10px;
+            padding:8px;
+            background:#fff;
+            border-radius:8px;
+            font-size:12px;
+        }
+        .legend-item{
+            display:flex;
+            align-items:center;
+            gap:4px;
+        }
+        .legend-color{
+            width:16px;
+            height:16px;
+            border-radius:3px;
+            border:1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="back" onclick="history.back()">← 返回首页</div>
+    <h2>车场异常预警监测</h2>
+
+    <!-- 图例说明 -->
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background:#e6ffed"></div>
+            <span>正常车位</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background:#fff3cd"></div>
+            <span>停车超时</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background:#f8d7da"></div>
+            <span>占用消防通道</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background:#ffeaa7"></div>
+            <span>违规乱停放</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background:#d1ecf1"></div>
+            <span>设备故障</span>
+        </div>
+    </div>
+
+    <!-- 车位分布图 -->
+    <div class="park-map" id="parkMap">
+        <div class="area-block area-A"></div>
+        <div class="area-block area-B"></div>
+        <div class="area-block area-C"></div>
+        <div class="area-block area-D"></div>
+
+        <!-- 分区文字标注 -->
+        <div class="area-name name-A">A区</div>
+        <div class="area-name name-B">B区</div>
+        <div class="area-name name-C">C区</div>
+        <div class="area-name name-D">D区</div>
+
+        <div class="map-entrance">入口</div>
+        <div class="map-exit">出口</div>
+    </div>
+
+    <!-- 异常明细清单 -->
+    <div class="warn-list">
+        <div class="warn-item">1. D3车位：车辆停放超时，超出规定停留时长</div>
+        <div class="warn-item">2. A4车位：车辆违规占用消防通道，存在安全隐患</div>
+        <div class="warn-item">3. B2车位：车辆偏离车位标线，乱停占用相邻车位空间</div>
+        <div class="warn-item">4. C1车位：周边堆放杂物，阻碍通行路线</div>
+        <div class="warn-item">5. B4车位：车位感应识别设备故障，无法正常检测车辆</div>
+        <div class="warn-item">6. A1车位：长期闲置未清理，现场杂物堆积</div>
+    </div>
+
+<script>
+    // 均分排布车位坐标，整体整齐舒展
+    const parkPosition = {
+        A1:{x:30,y:55},A2:{x:90,y:55},A3:{x:150,y:55},A4:{x:210,y:55},
+        B1:{x:30,y:160},B2:{x:90,y:160},B3:{x:150,y:160},B4:{x:210,y:160},
+        C1:{x:30,y:265},C2:{x:90,y:265},C3:{x:150,y:265},C4:{x:210,y:265},
+        D1:{x:30,y:370},D2:{x:90,y:370},D3:{x:150,y:370},D4:{x:210,y:370}
+    };
+    // 各类异常车位
+    const overtimePark = ['D3'];
+    const firePark = ['A4'];
+    const errorPark = ['B2'];
+    const devicePark = ['B4'];
+    const clutterPark = ['A1','C1'];
+
+    // 初始化绘制所有车位并标注异常
+    function initParkSlot(){
+        const map = document.getElementById('parkMap');
+        for(let key in parkPosition){
+            let pos = parkPosition[key];
+            let slot = document.createElement('div');
+            slot.className = 'park-slot';
+            slot.style.left = pos.x + 'px';
+            slot.style.top = pos.y + 'px';
+            slot.innerText = key;
+
+            // 判断车位异常类型，赋予对应样式
+            if(overtimePark.includes(key)){
+                slot.classList.add('slot-overtime');
+            }else if(firePark.includes(key)){
+                slot.classList.add('slot-fire');
+            }else if(errorPark.includes(key)){
+                slot.classList.add('slot-parkerr');
+            }else if(devicePark.includes(key)){
+                slot.classList.add('slot-device');
+            }else{
+                slot.classList.add('slot-normal');
+            }
+            map.appendChild(slot);
+        }
+    }
+    window.onload = initParkSlot;
+</script>
+</body>
+</html>

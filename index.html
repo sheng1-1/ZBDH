@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <title>智泊导行</title>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body{
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #cce8ff;
+        }
+        .home-container{
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 9 / 16;
+            background: url("images/your_home_by.png") no-repeat center center;
+            background-size: contain;
+            position: relative;
+        }
+        /* 三个透明点击层，完全按你画的黄色框精准匹配 */
+        .click-btn{
+            position: absolute;
+            left: 20%;
+            right: 20%;
+            height: 6%;
+            cursor: pointer;
+        }
+        /* 车位选择（第一个框） */
+        .btn-park{
+            top: 60.5%;
+        }
+        /* 一键寻车（第二个框） */
+        .btn-find{
+            top: 72.5%;
+        }
+        /* 异常预警（第三个框） */
+        .btn-warn{
+            top: 80.5%;
+        }
+    </style>
+</head>
+<body>
+    <div class="home-container">
+        <a href="park.html" class="click-btn btn-park"></a>
+        <a href="findcar.html" class="click-btn btn-find"></a>
+        <a href="warn.html" class="click-btn btn-warn"></a>
+    </div>
+</body>
+</html>
