@@ -195,10 +195,10 @@
         D1:{x:30,y:470},D2:{x:90,y:470},D3:{x:150,y:470},D4:{x:210,y:470}
     };
 
-    // 入口坐标保持不变
+    // 入口坐标
     const startPos = {x:20, y:417};
-    // 微调出口X坐标，路径终点对齐出口按钮
-    const exitPos = {x:365, y:135};
+    // 出口坐标（缩短后，完美对齐出口按钮）
+    const exitPos = {x:330, y:135};
 
     function initParkSlot(){
         const map = document.getElementById('parkMap');
@@ -222,12 +222,23 @@
         document.querySelectorAll('.nav-path,.flow-dot,.target-focus').forEach(el=>el.remove());
     }
 
-    // 路径逻辑：竖向对齐后横向直达出口
-    function getPathPoints(sx,sy,ex,ey){
+    // ✅ 新路线：只走通道，不穿过车位（你要的逻辑）
+    function getPathPoints(sx,sy,ex,ey,pid){
         let pts = [];
-        pts.push({x:sx,y:sy});
-        pts.push({x:sx,y:ey});
-        pts.push({x:ex,y:ey});
+        pts.push({x:sx, y:sy});
+
+        let channelY;
+        if(pid.startsWith('A')) channelY = 100;
+        else if(pid.startsWith('B')) channelY = 240;
+        else if(pid.startsWith('C')) channelY = 380;
+        else channelY = 440;
+
+        // 入口 → 直行上通道
+        pts.push({x:sx, y:channelY});
+        // 通道 → 横向走到车位上方
+        pts.push({x:ex, y:channelY});
+        // 进入车位
+        pts.push({x:ex, y:ey});
         return pts;
     }
 
@@ -285,7 +296,11 @@
             if(idx >= points.length - 1){
                 showConfirm("已到达目标车位，是否需要导航前往出口？",
                 ()=>{
-                    let exitPath = getPathPoints(cur.x,cur.y,exitPos.x,exitPos.y);
+                    let exitPath = [
+                        {x:cur.x, y:cur.y},
+                        {x:cur.x, y:135},
+                        {x:exitPos.x, y:135}
+                    ];
                     drawPathLines(exitPath);
                     animateExitDot(exitPath);
                 },
@@ -333,7 +348,7 @@
         if(!parkPosition[inputId]){ alert('无此车位编号，请重新输入'); return; }
         let target = parkPosition[inputId];
         clearNav();
-        let pts = getPathPoints(startPos.x,startPos.y,target.x+25,target.y+15);
+        let pts = getPathPoints(startPos.x,startPos.y,target.x+25,target.y+15, inputId);
         drawPathLines(pts);
         animateDotAlongPath(pts);
         let targetDom = document.querySelector(`[data-pid="${inputId}"]`);
