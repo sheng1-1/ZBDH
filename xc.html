@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>一键寻车 - 智泊导行</title>
+<!-- 引入字体图标库（和首页、缴费页统一，用于底部导航图标） -->
+<link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    flex-shrink: 1;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+body {
+    font-family: "Microsoft Yahei", Arial, sans-serif;
+    background: #0f172a;
+    color: #ffffff;
+    text-align: center;
+    padding: 12px 4px;
+    line-height: 1.6;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior: none;
+    overflow-x: hidden;
+    /* 预留底部导航高度，防止页面内容被固定导航遮挡 */
+    padding-bottom: 65px;
+    /* 为星点装饰层提供定位基准 */
+    position: relative;
+}
+
+/* ========== 新增：离散闪烁星点背景（仅此处新增） ========== */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* 多组径向渐变：大小、亮度、位置错落，实现随机离散效果 */
+    background-image:
+        radial-gradient(2px 2px at 20px 30px, #ffffff, transparent),
+        radial-gradient(1px 1px at 55px 85px, #e0f7ff, transparent),
+        radial-gradient(2px 2px at 95px 40px, #ffffff, transparent),
+        radial-gradient(1px 1px at 135px 95px, #cfe8ff, transparent),
+        radial-gradient(3px 3px at 175px 50px, #e0f7ff, transparent),
+        radial-gradient(1px 1px at 215px 135px, #ffffff, transparent),
+        radial-gradient(2px 2px at 265px 75px, #cfe8ff, transparent),
+        radial-gradient(1px 1px at 315px 115px, #e0f7ff, transparent),
+        radial-gradient(2px 2px at 365px 25px, #ffffff, transparent),
+        radial-gradient(1px 1px at 405px 105px, #cfe8ff, transparent);
+    background-repeat: repeat;
+    background-size: 400px 240px;
+    z-index: -1; /* 固定在页面最底层 */
+    pointer-events: none; /* 点击穿透，不影响任何交互 */
+    /* 缓慢闪烁：3.2秒一轮，缓动渐变、无限明暗交替 */
+    animation: starTwinkle 3.2s ease-in-out infinite alternate;
+}
+
+/* 星点闪烁动画：透明度渐变，若隐若现、不刺眼 */
+@keyframes starTwinkle {
+    0% {
+        opacity: 0.22;
+    }
+    100% {
+        opacity: 0.43;
+    }
+}
+/* ======================================================== */
+
+.car-info {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 14px;
+    margin: 0 auto 18px;
+    width: 100%;
+    border: 1px solid rgba(0,240,255,0.2);
+}
+.car-info p {
+    font-size: 1.05rem;
+    margin: 5px 0;
+}
+.car-info .label {
+    color: #00f0ff;
+}
+
+.back-home {
+    display: inline-block;
+    padding: 8px 18px;
+    background: #1e293b;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 8px;
+    border: 1px solid #3b82f6;
+    font-size: 0.95rem;
+    margin-bottom: 15px;
+}
+.back-home:hover {
+    background: #3b82f6;
+}
+
+.search-box {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 0 auto 22px;
+    width: 100%;
+}
+#carInput {
+    flex: 1;
+    padding: 12px 15px;
+    border-radius: 8px;
+    border: none;
+    font-size: 1rem;
+    outline: none;
+    background: #fff;
+    color: #333;
+}
+#searchBtn {
+    padding: 12px 20px;
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    white-space: nowrap;
+}
+#searchBtn:disabled {
+    background: #666;
+    cursor: not-allowed;
+}
+
+.park-container {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    width: 100%;
+    margin: 0 auto 25px;
+}
+
+.side-road {
+    width: 32px;
+    flex-shrink: 0;
+    background: #334155;
+    border-radius: 4px 0 0 4px;
+    position: relative;
+}
+#rightRoad{
+    border-radius: 0 4px 4px 0;
+}
+
+.road-dash-vertical {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: repeating-linear-gradient(
+        0deg, #e2e8f0 0px, #e2e8f0 10px, transparent 10px, transparent 20px
+    );
+}
+.road-dash-horizontal {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: repeating-linear-gradient(
+        90deg, #e2e8f0 0px, #e2e8f0 10px, transparent 10px, transparent 20px
+    );
+}
+
+.arrow {
+    position: absolute;
+    color: #3b82f6;
+    font-size: 18px;
+    font-weight: 900;
+    pointer-events: none;
+}
+
+.parking-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    position: relative;
+    min-width: 0;
+}
+
+.cross-road {
+    grid-column: 1 / -1;
+    height: 36px;
+    background: #334155;
+    position: relative;
+    margin: 5px 0;
+}
+
+.slot {
+    height: 82px;
+    border-radius: 6px;
+    pointer-events: none;
+    cursor: default;
+    font-weight: bold;
+    font-size: 0.9rem;
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.free { background: #22c55e; }
+.occupied { background: #ef4444; }
+.slot.target {
+    box-shadow: 0 0 0 2px #ffcc00;
+    background: #ffaa00;
+    color: #000;
+}
+
+.link-line {
+    position: absolute;
+    width: 6px;
+    height: 8px;
+    background: #64748b;
+    left: 50%;
+    transform: translateX(-50%);
+}
+.link-top {
+    top: -8px;
+}
+.link-bottom {
+    bottom: -8px;
+}
+
+.road-entrance, .road-exit {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    font-weight: bold;
+    background: #22c55e;
+    color: #000;
+    padding: 2px 5px;
+    border-radius: 2px;
+    white-space: nowrap;
+}
+.road-exit {
+    background: #ef4444;
+    top: 4px;
+}
+.road-entrance {
+    bottom: 4px;
+}
+
+.path-line {
+    position: absolute;
+    background: #ffcc00;
+    z-index: 10;
+    border-radius: 2px;
+}
+
+.run-arrow {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: #ff6600;
+    clip-path: polygon(50% 0, 0 100%, 100% 100%);
+    z-index: 99;
+    pointer-events: none;
+    display: none;
+    transition: transform 0.2s ease;
+    transform: rotate(0deg);
+}
+
+button {
+    padding: 12px 20px;
+    margin: 8px 6px;
+    border: none;
+    border-radius: 8px;
+    background: #3b82f6;
+    color: #fff;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+button:hover{
+    background: #5596ff;
+}
+
+.page {
+    display: none;
+}
+.active {
+    display: block;
+}
+
+.popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 10px;
+}
+.popup-content {
+    background: #1e293b;
+    padding: 25px 20px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 360px;
+    font-size: 1rem;
+}
+
+.nav-area {
+    height: 220px;
+    background: #111827;
+    margin: 20px auto;
+    width: 100%;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ========== 底部导航栏（与首页、缴费页样式完全统一，永久固定） ========== */
+.tab-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 65px;
+    background: #0a192f;
+    display: flex;
+    border-top: 1px solid rgba(0,240,255,0.2);
+    /* 超高层级，防止被弹窗/内容遮挡 */
+    z-index: 9999;
+}
+.tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    font-size: 12px;
+    cursor: pointer;
+}
+.tab-item i {
+    font-size: 22px;
+    margin-bottom: 4px;
+}
+/* 选中高亮色（当前为寻车页，此项高亮） */
+.nav-active {
+    color: #00f0ff;
+}
+a{
+    text-decoration: none;
+    color: #fff;
+}
+/* ====================================================================== */
+</style>
+</head>
+
+<body>
+<a href="index.html" class="back-home">← 返回首页</a>
+
+<div class="car-info">
+    <p><span class="label">当前车牌：</span><span id="plateText">京A12345</span></p>
+    <p><span class="label">绑定车位：</span><span id="parkText">A001</span></p>
+</div>
+
+<div class="search-box">
+    <input type="text" id="carInput" placeholder="请输入目标车位号 例：A001" maxlength="4">
+    <button id="searchBtn">开始导航</button>
+</div>
+
+<div id="parkingPage" class="page active">
+    <h2 id="zoneTitle" style="font-size:1rem;margin-bottom:10px;">A区车位分布图</h2>
+    <div class="park-container">
+        <div class="side-road" id="leftRoad"></div>
+        <div class="parking-grid" id="parkingGrid">
+            <div class="run-arrow" id="runArrow"></div>
+        </div>
+        <div class="side-road" id="rightRoad"></div>
+    </div>
+</div>
+
+<div id="navPage" class="page">
+    <h2 id="navTitle"></h2>
+    <div class="nav-area">📍 实景导航区域</div>
+    <button onclick="backPark()">返回车位图</button>
+</div>
+
+<div class="popup" id="arrivePopup">
+    <div class="popup-content">
+        <p>已成功到达目标车位！</p>
+        <p style="margin:10px 0;">请选择下一步操作</p>
+        <button onclick="goNav()">实景导航</button>
+        <button onclick="navToExit()">前往出口</button>
+        <button onclick="closeAllPopup()">取消</button>
+    </div>
+</div>
+
+<!-- 底部导航栏：4个图标 + 跳转链接 + 当前页面（寻车）高亮，永久固定不消失 -->
+<div class="tab-bar">
+    <div class="tab-item" onclick="location.href='index.html'">
+        <i class="fa fa-home"></i>
+        <span>首页</span>
+    </div>
+    <!-- 当前页面：寻车，高亮激活 -->
+    <div class="tab-item nav-active">
+        <i class="fa fa-map-marker"></i>
+        <span>寻车</span>
+    </div>
+    <div class="tab-item" onclick="location.href='jf.html'">
+        <i class="fa fa-credit-card"></i>
+        <span>缴费</span>
+    </div>
+    <div class="tab-item">
+        <i class="fa fa-user"></i>
+        <span>我的</span>
+    </div>
+</div>
+
+<script>
+const currentPlate = "京A12345";
+let defaultPark = "A001";
+
+let zones = { A: [], B: [], C: [] };
+let currentSlot = "";
+let currentZone = "";
+let targetParkCode = "";
+let isExitNav = false;
+let animTimer = null;
+
+const SPEED_PX_PER_MS = 0.09;
+
+function initZones() {
+    ["A","B","C"].forEach(zone => {
+        for (let i = 1; i <= 12; i++) {
+            let num = i.toString().padStart(3, '0');
+            zones[zone].push({
+                number: zone + num,
+                free: Math.random() > 0.5
+            });
+        }
+    });
+    let initZone = defaultPark.charAt(0);
+    renderPark(initZone);
+}
+
+function buildSideRoad(el, isLeft) {
+    el.innerHTML = '';
+    let vDash = document.createElement('div');
+    vDash.className = 'road-dash-vertical';
+    el.appendChild(vDash);
+
+    const arrDown = document.createElement('div');
+    arrDown.className = 'arrow';
+    arrDown.style.top = "50%";
+    arrDown.style.left = "25%";
+    arrDown.style.transform = "translate(-50%, -50%)";
+    arrDown.innerText = "↓";
+    el.appendChild(arrDown);
+
+    const arrUp = document.createElement('div');
+    arrUp.className = 'arrow';
+    arrUp.style.top = "50%";
+    arrUp.style.right = "25%";
+    arrUp.style.transform = "translate(50%, -50%)";
+    arrUp.innerText = "↑";
+    el.appendChild(arrUp);
+
+    if(isLeft) {
+        let entrance = document.createElement('div');
+        entrance.className = 'road-entrance';
+        entrance.innerText = '入口';
+        el.appendChild(entrance);
+    } else {
+        let exit = document.createElement('div');
+        exit.className = 'road-exit';
+        exit.innerText = '出口';
+        el.appendChild(exit);
+    }
+}
+
+function clearNav() {
+    if(animTimer) {
+        clearInterval(animTimer);
+        animTimer = null;
+    }
+    let grid = document.getElementById("parkingGrid");
+    let lines = grid.querySelectorAll(".path-line");
+    lines.forEach(line => line.remove());
+    let arrow = document.getElementById("runArrow");
+    arrow.style.display = "none";
+    arrow.style.transform = "rotate(0deg)";
+}
+
+function renderPark(zone) {
+    currentZone = zone;
+    clearNav();
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.getElementById("parkingPage").classList.add("active");
+    document.getElementById("zoneTitle").innerText = zone + "区车位分布图";
+
+    buildSideRoad(document.getElementById('leftRoad'), true);
+    buildSideRoad(document.getElementById('rightRoad'), false);
+
+    let grid = document.getElementById("parkingGrid");
+    let arrow = document.getElementById("runArrow");
+    grid.innerHTML = "";
+    grid.appendChild(arrow);
+
+    let parkList = zones[zone];
+    let totalRow = Math.ceil(parkList.length / 4);
+
+    for (let i = 0; i < parkList.length; i++) {
+        let item = parkList[i];
+        let slotDiv = document.createElement("div");
+        slotDiv.className = "slot " + (item.free ? "free" : "occupied");
+        slotDiv.innerText = item.number;
+        slotDiv.dataset.park = item.number;
+
+        if(item.number === targetParkCode){
+            slotDiv.classList.add("target");
+        }
+
+        let row = Math.floor(i / 4) + 1;
+        if(row === 1){
+            let link = document.createElement("div");
+            link.className = "link-line link-bottom";
+            slotDiv.appendChild(link);
+        }else if(row === 2){
+            let linkTop = document.createElement("div");
+            linkTop.className = "link-line link-top";
+            slotDiv.appendChild(linkTop);
+            let linkBot = document.createElement("div");
+            linkBot.className = "link-line link-bottom";
+            slotDiv.appendChild(linkBot);
+        }else if(row === totalRow){
+            let link = document.createElement("div");
+            link.className = "link-line link-top";
+            slotDiv.appendChild(link);
+        }
+        grid.appendChild(slotDiv);
+
+        if((i + 1) % 4 === 0 && i !== parkList.length - 1){
+            let crossRoad = document.createElement("div");
+            crossRoad.className = "cross-road";
+
+            let hDash = document.createElement("div");
+            hDash.className = 'road-dash-horizontal';
+            crossRoad.appendChild(hDash);
+
+            const arrowTop = document.createElement('div');
+            arrowTop.className = 'arrow';
+            arrowTop.style.left = "50%";
+            arrowTop.style.top = "25%";
+            arrowTop.style.transform = "translate(-50%, -50%)";
+            arrowTop.innerText = "←";
+            crossRoad.appendChild(arrowTop);
+
+            const arrowBottom = document.createElement('div');
+            arrowBottom.className = 'arrow';
+            arrowBottom.style.left = "50%";
+            arrowBottom.style.top = "75%";
+            arrowBottom.style.transform = "translate(-50%, -50%)";
+            arrowBottom.innerText = "→";
+            crossRoad.appendChild(arrowBottom);
+
+            grid.appendChild(crossRoad);
+        }
+    }
+}
+
+function getNormalPath() {
+    let grid = document.getElementById("parkingGrid");
+    let gridRect = grid.getBoundingClientRect();
+    let leftRoad = document.getElementById("leftRoad");
+    let leftRect = leftRoad.getBoundingClientRect();
+    let targetSlot = document.querySelector(".slot.target");
+    let slotRect = targetSlot.getBoundingClientRect();
+
+    let allSlots = grid.querySelectorAll(".slot");
+    let slotIndex = Array.from(allSlots).findIndex(s => s === targetSlot);
+    let targetRow = Math.floor(slotIndex / 4) + 1;
+
+    let mainX = leftRect.left - gridRect.left + leftRect.width / 2;
+    let path = [];
+    path.push({ x: mainX, y: gridRect.height - 20 });
+
+    if (targetRow === 1) {
+        let roadY = slotRect.bottom - gridRect.top + 10;
+        path.push({ x: mainX, y: roadY });
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: roadY });
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: slotRect.bottom - gridRect.top - 10 });
+    } else if (targetRow === 2 || targetRow === 3) {
+        let roadY = slotRect.top - gridRect.top - 20;
+        path.push({ x: mainX, y: roadY });
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: roadY });
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: slotRect.top - gridRect.top + 10 });
+    }
+    return path;
+}
+
+function getExitPath() {
+    let grid = document.getElementById("parkingGrid");
+    let gridRect = grid.getBoundingClientRect();
+    let rightRoad = document.getElementById("rightRoad");
+    let rightRect = rightRoad.getBoundingClientRect();
+    let targetSlot = document.querySelector(".slot.target");
+    let slotRect = targetSlot.getBoundingClientRect();
+
+    let allSlots = grid.querySelectorAll(".slot");
+    let slotIndex = Array.from(allSlots).findIndex(s => s === targetSlot);
+    let targetRow = Math.floor(slotIndex / 4) + 1;
+
+    let exitX = rightRect.left - gridRect.left + rightRect.width / 2;
+    let path = [];
+
+    if (targetRow === 1) {
+        let roadY = slotRect.bottom - gridRect.top + 10;
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: roadY });
+        path.push({ x: exitX, y: roadY });
+        path.push({ x: exitX, y: 20 });
+    } else {
+        let roadY = slotRect.top - gridRect.top - 20;
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: roadY });
+        path.push({ x: exitX, y: roadY });
+        path.push({ x: exitX, y: 20 });
+    }
+    return path;
+}
+
+function drawLine(points, parent) {
+    for(let i = 0; i < points.length - 1; i++){
+        let p1 = points[i];
+        let p2 = points[i+1];
+        let line = document.createElement("div");
+        line.className = "path-line";
+        if(p1.x === p2.x){
+            line.style.width = "3px";
+            line.style.height = Math.abs(p2.y - p1.y) + "px";
+            line.style.left = p1.x + "px";
+            line.style.top = Math.min(p1.y, p2.y) + "px";
+        }else{
+            line.style.height = "3px";
+            line.style.width = Math.abs(p2.x - p1.x) + "px";
+            line.style.top = p1.y + "px";
+            line.style.left = Math.min(p1.x, p2.x) + "px";
+        }
+        parent.appendChild(line);
+    }
+}
+
+function getDistance(p1, p2) {
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+function getRotateAngle(prev, curr) {
+    const dx = curr.x - prev.x;
+    const dy = curr.y - prev.y;
+    const offset = 1;
+    if (dx > offset)  return 90;
+    if (dx < -offset) return 270;
+    if (dy > offset)  return 180;
+    if (dy < -offset) return 0;
+    return -1;
+}
+
+function runUniformMove(path) {
+    const arrow = document.getElementById("runArrow");
+    arrow.style.display = "block";
+    let pointIdx = 0;
+    let currentPos = { ...path[0] };
+
+    if(path.length > 1){
+        const initAngle = getRotateAngle(path[0], path[1]);
+        if(initAngle !== -1) arrow.style.transform = `rotate(${initAngle}deg)`;
+    }
+    arrow.style.left = currentPos.x - 9 + "px";
+    arrow.style.top = currentPos.y - 9 + "px";
+
+    animTimer = setInterval(() => {
+        if (pointIdx >= path.length - 1) {
+            clearInterval(animTimer);
+            animTimer = null;
+            if(!isExitNav){
+                setTimeout(()=>{
+                    document.getElementById("arrivePopup").style.display = "flex";
+                }, 300);
+            }else{
+                alert("已顺利到达出口！");
+            }
+            return;
+        }
+
+        const target = path[pointIdx + 1];
+        const dx = target.x - currentPos.x;
+        const dy = target.y - currentPos.y;
+        const dist = getDistance(currentPos, target);
+
+        if (dist < 1) {
+            pointIdx++;
+            if(pointIdx < path.length - 1){
+                const nextAngle = getRotateAngle(path[pointIdx], path[pointIdx + 1]);
+                if(nextAngle !== -1) arrow.style.transform = `rotate(${nextAngle}deg)`;
+            }
+            return;
+        }
+
+        const step = SPEED_PX_PER_MS * 16;
+        const ratio = step / dist;
+        currentPos.x += dx * ratio;
+        currentPos.y += dy * ratio;
+
+        arrow.style.left = currentPos.x - 9 + "px";
+        arrow.style.top = currentPos.y - 9 + "px";
+    }, 16);
+}
+
+function drawPathAndMove() {
+    let grid = document.getElementById("parkingGrid");
+    isExitNav = false;
+    let path = getNormalPath();
+    drawLine(path, grid);
+    runUniformMove(path);
+}
+
+function navToExit() {
+    closeAllPopup();
+    isExitNav = true;
+    let grid = document.getElementById("parkingGrid");
+    let path = getExitPath();
+    drawLine(path, grid);
+    runUniformMove(path);
+}
+
+document.getElementById("searchBtn").addEventListener("click", function(){
+    let inputVal = document.getElementById("carInput").value.trim().toUpperCase();
+    if(!inputVal || inputVal.length !== 4){
+        alert("请输入正确格式车位号，例如：A001");
+        return;
+    }
+    let area = inputVal.charAt(0);
+    if(!["A","B","C"].includes(area)){
+        alert("仅支持 A / B / C 区域！");
+        return;
+    }
+    targetParkCode = inputVal;
+    renderPark(area);
+    setTimeout(drawPathAndMove, 300);
+});
+
+function backPark() {
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.getElementById("parkingPage").classList.add("active");
+}
+
+function closeAllPopup() {
+    document.getElementById("arrivePopup").style.display = "none";
+}
+
+function goNav() {
+    closeAllPopup();
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.getElementById("navPage").classList.add("active");
+    document.getElementById("navTitle").innerText = "实景导航：" + targetParkCode;
+}
+
+initZones();
+</script>
+</body>
+</html><div class="tab-bar">
+    <div class="tab-item" onclick="location.href='index.html'">
+        <i class="fa fa-home"></i>
+        <span>首页</span>
+    </div>
+    <div class="tab-item" onclick="location.href='xc.html'">
+        <i class="fa fa-map-marker"></i>
+        <span>寻车</span>
+    </div>
+    <div class="tab-item" onclick="location.href='jf.html'">
+        <i class="fa fa-credit-card"></i>
+        <span>缴费</span>
+    </div>
+    <div class="tab-item" onclick="location.href='wd.html'">
+        <i class="fa fa-user"></i>
+        <span>我的</span>
+    </div>
+</div><div class="tab-bar">
+    <div class="tab-item" onclick="location.href='index.html'">
+        <i class="fa fa-home"></i>
+        <span>首页</span>
+    </div>
+    <div class="tab-item nav-active" onclick="location.href='xc.html'">
+        <i class="fa fa-map-marker"></i>
+        <span>寻车</span>
+    </div>
+    <div class="tab-item" onclick="location.href='jf.html'">
+        <i class="fa fa-credit-card"></i>
+        <span>缴费</span>
+    </div>
+    <div class="tab-item" onclick="location.href='wd.html'">
+        <i class="fa fa-user"></i>
+        <span>我的</span>
+    </div>
+</div>

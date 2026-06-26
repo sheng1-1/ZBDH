@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智慧停车 - 空位导航</title>
+<style>
+/* 全局锁定滚动，进入实景页面整体禁止上下滑动 */
+html, body {
+    margin: 0;
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+    text-align: center;
+    position: relative;
+    overflow-x: hidden;
+}
+body.lock-scroll {
+    overflow-y: hidden !important;
+    height: 100vh !important;
+}
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(2px 2px at 25px 45px, #ffffff, transparent),
+        radial-gradient(1px 1px at 65px 95px, #e6f7ff, transparent),
+        radial-gradient(2px 2px at 115px 55px, #ffffff, transparent),
+        radial-gradient(1px 1px at 155px 105px, #cfe8ff, transparent),
+        radial-gradient(3px 3px at 195px 65px, #e6f7ff, transparent),
+        radial-gradient(1px 1px at 235px 145px, #ffffff, transparent),
+        radial-gradient(2px 2px at 285px 85px, #cfe8ff, transparent),
+        radial-gradient(1px 1px at 335px 125px, #e6f7ff, transparent),
+        radial-gradient(2px 2px at 385px 35px, #ffffff, transparent),
+        radial-gradient(1px 1px at 425px 115px, #cfe8ff, transparent);
+    background-repeat: repeat;
+    background-size: 420px 260px;
+    z-index: -1;
+    pointer-events: none;
+    animation: starTwinkle 3.5s ease-in-out infinite alternate;
+}
+@keyframes starTwinkle {
+    0% {opacity: 0.20;}
+    100% {opacity: 0.42;}
+}
+h1 {
+    margin: 20px 0;
+}
+.zone-btn {
+    width: 80%;
+    margin: 10px auto;
+    padding: 20px;
+    background: #1e293b;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 18px;
+    transition: 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
+}
+.zone-btn:hover{
+    background: #2d3a50;
+}
+.recommend {
+    border: 2px solid #22c55e;
+}
+.free-num {
+    color: #22c55e;
+    font-size: 22px;
+    font-weight: 900;
+}
+.scroll-box {
+    width: 80%;
+    height: 200px;
+    margin: 30px auto 20px;
+    background: #1e293b;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+    padding: 10px;
+}
+.box-top-title {
+    font-size: 22px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid rgba(255,255,255,0.2);
+    margin-bottom: 10px;
+}
+.main-col-wrap {
+    display: flex;
+    width: 100%;
+    height: calc(100% - 60px);
+    position: relative;
+}
+.col {
+    flex: 1;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+    border-right: 2px solid rgba(255,255,255,0.2);
+}
+.col:last-child {
+    border-right: none;
+}
+.scroll-content {
+    position: absolute;
+    width: 100%;
+    top: 0;
+}
+.item {
+    line-height: 42px;
+    font-size: 14px;
+    white-space: nowrap;
+    color: #ffffff;
+}
+.park-container {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    padding: 20px;
+    max-width: 650px;
+    margin: 0 auto;
+    position: relative;
+}
+.side-road {
+    width: 70px;
+    background: #334155;
+    border-radius: 4px 0 0 4px;
+    position: relative;
+}
+#rightRoad{
+    border-radius: 0 4px 4px 0;
+}
+.road-dash-vertical {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: repeating-linear-gradient(
+        0deg,
+        #e2e8f0 15px,
+        #e2e8f0 30px,
+        transparent 30px,
+        transparent 45px
+    );
+}
+.road-dash-horizontal {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 3px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: repeating-linear-gradient(
+        90deg,
+        #e2e8f0 15px,
+        #e2e8f0 30px,
+        transparent 30px,
+        transparent 45px
+    );
+}
+.parking-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    position: relative;
+}
+.cross-road {
+    grid-column: 1 / -1;
+    height: 55px;
+    background: #334155;
+    position: relative;
+    margin: 0;
+}
+.arrow-down{
+    position:absolute;
+    left:50%;
+    top:38%;
+    transform:translateX(-50%);
+    font-size:24px;
+}
+.arrow-up{
+    position:absolute;
+    left:50%;
+    top:5%;
+    transform:translateX(-50%);
+    font-size:24px;
+}
+.arrow-side-up{
+    position:absolute;
+    left:55%;
+    top:50%;
+    transform:translateY(-50%);
+    font-size:24px;
+}
+.arrow-side-down{
+    position:absolute;
+    left:28%;
+    top:50%;
+    transform:translateY(-50%);
+    font-size:24px;
+}
+.slot {
+    padding: 26px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 14px;
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.15);
+    transition: 0.2s;
+}
+.slot.free{
+    cursor: pointer;
+}
+.slot.free:hover{
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+.occupied { background: #ef4444; cursor: default !important; pointer-events:none; }
+.free { background: #22c55e; }
+.slot.target {
+    box-shadow: 0 0 0 3px #ffcc00;
+    background: #ffaa00;
+    color: #000;
+}
+.link-line {
+    position: absolute;
+    width: 8px;
+    height: 14px;
+    background: #64748b;
+    left: 50%;
+    transform: translateX(-50%);
+}
+.link-top {
+    top: -8px;
+}
+.link-bottom {
+    bottom: -14px;
+}
+.road-entrance {
+    position: absolute;
+    left: 50%;
+    bottom: 4px;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: bold;
+    background: #22c55e;
+    color: #000;
+    padding: 2px 4px;
+    border-radius: 2px;
+    border: 1px solid #fff;
+}
+.road-exit {
+    position: absolute;
+    left: 50%;
+    top: 4px;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: bold;
+    background: #ef4444;
+    color: #000;
+    padding: 2px 4px;
+    border-radius: 2px;
+    border: 1px solid #fff;
+}
+.path-line {
+    position: absolute;
+    background: #ffcc00;
+    z-index: 10;
+    pointer-events: none;
+    border-radius: 2px;
+}
+.run-arrow {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    background: #ff6600;
+    clip-path: polygon(50% 0, 0 100%, 100% 100%);
+    z-index: 99;
+    pointer-events: none;
+    display: none;
+    transform: rotate(0deg);
+    transition: transform 0.05s linear;
+}
+.popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 99;
+}
+.popup-content {
+    background: #1e293b;
+    padding: 24px;
+    border-radius: 12px;
+    width: 80%;
+    max-width: 350px;
+}
+button {
+    padding: 10px 20px;
+    margin: 8px 5px 0;
+    border: none;
+    border-radius: 6px;
+    background: #3b82f6;
+    color: white;
+    cursor: pointer;
+    transition: 0.2s;
+}
+button:hover{
+    background: #5596ff;
+}
+.page {
+    display: none;
+}
+.active {
+    display: block;
+}
+.selectPopup .popup-content{
+    max-width:420px;
+}
+.opt-btn{
+    width:90%;
+    margin:6px auto;
+    display:block;
+}
+
+/* ========== 仅新增：标题下方竖向小按钮样式，宽度和车位匹配 ========== */
+.title-buttons-wrap{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    width:22%;
+    margin:6px auto 12px;
+}
+.title-buttons-wrap button{
+    width:100%;
+    padding:8px 0;
+    font-size:13px;
+    margin:0;
+}
+
+/* 实景页面样式：删除标题、上移视频、紧凑布局 */
+#navPage {
+    padding: 0;
+    margin-top: -10px;
+}
+#threeBox {
+    width: 94%;
+    max-width: 1200px;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    margin: 0 auto;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+}
+#threeBox video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+</style>
+</head>
+<body>
+<h1>🚗 智慧停车系统</h1>
+
+<div id="home" class="page active">
+    <div id="zoneA_btn" class="zone-btn">
+        <span>A区</span>
+        <span class="free-num" id="A_num"></span>
+    </div>
+    <div id="zoneB_btn" class="zone-btn">
+        <span>B区</span>
+        <span class="free-num" id="B_num"></span>
+    </div>
+    <div id="zoneC_btn" class="zone-btn">
+        <span>C区</span>
+        <span class="free-num" id="C_num"></span>
+    </div>
+    <p id="recommendText"></p>
+    <div class="scroll-box">
+        <div class="box-top-title">空位已占用</div>
+        <div class="main-col-wrap">
+            <div class="col" id="colA">
+                <div class="scroll-content" id="scrollA"></div>
+            </div>
+            <!-- 修正B区结构，和A、C完全一致 -->
+            <div class="col" id="colB">
+                <div class="scroll-content" id="scrollB"></div>
+            </div>
+            <div class="col" id="colC">
+                <div class="scroll-content" id="scrollC"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="parkingPage" class="page">
+    <h2 id="zoneTitle"></h2>
+    <!-- ========== 仅新增3个竖向小矩形按钮，位置在标题正下方 ========== -->
+    <div class="title-buttons-wrap">
+        <button onclick="btnInNear()">离入口最近</button>
+        <button onclick="btnOutNear()">离出口最近</button>
+        <button onclick="btnCenter()">居中选择</button>
+    </div>
+
+    <div class="park-container">
+        <div class="side-road" id="leftRoad"></div>
+        <div class="parking-grid" id="parkingGrid">
+            <div class="run-arrow" id="runArrow"></div>
+        </div>
+        <div class="side-road" id="rightRoad"></div>
+    </div>
+    <!-- 两个按钮并排同行 -->
+    <button onclick="backHome()">返回区域选择</button>
+    <button onclick="location.href='index.html'">返回首页</button>
+</div>
+
+<!-- 实景页面：删掉实景车库文字，视频上移 -->
+<div id="navPage" class="page">
+    <div id="threeBox">
+        <video id="realVideo" muted playsinline>
+            <source src="sj.mp4" type="video/mp4">
+        </video>
+        <div style="position:absolute;bottom:-40px;left:0;width:100%;height:80px;background:#000;"></div>
+    </div>
+</div>
+
+<div class="popup" id="popup">
+    <div class="popup-content">
+        <div id="slotInfo"></div>
+        <button onclick="startNav()">开始路径导航</button>
+        <br>
+        <button onclick="closePopup()">关闭</button>
+    </div>
+</div>
+
+<div class="popup selectPopup" id="selectTypePopup">
+    <div class="popup-content">
+        <h3>请选择车位偏好</h3>
+        <button class="opt-btn" onclick="chooseInNear()">① 离入口最近</button>
+        <button class="opt-btn" onclick="chooseOutNear()">② 离出口最近</button>
+        <button class="opt-btn" onclick="chooseCenter()">③ 居中优选</button>
+        <button class="opt-btn" onclick="closeSelectPopup()">取消</button>
+    </div>
+</div>
+
+<script>
+let zones = { A: [], B: [], C: [] };
+let currentSlot = "";
+let currentZone = "";
+let moveTimer = null;
+let scrollTimer = null;
+const STEP_SPEED = 2;
+let tempBestZone = "";
+let userSelectZone = null;
+let globalPath = [];
+
+// 视频循环计数变量
+let videoLoopCount = 0;
+const MAX_LOOP = 2; // 循环2次自动返回
+
+// 返回2D平面导航
+function backToParking(){
+    document.body.classList.remove('lock-scroll');
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.getElementById("parkingPage").classList.add("active");
+    videoLoopCount = 0; // 重置循环计数
+}
+
+const videoDom = document.getElementById('realVideo');
+// 视频每次播放结束触发
+videoDom.addEventListener('ended', function(){
+    videoLoopCount++;
+    if(videoLoopCount >= MAX_LOOP){
+        backToParking();
+    }else{
+        videoDom.play();
+    }
+});
+
+// 进入实景页面初始化
+function enterRealNav(){
+    document.body.classList.add('lock-scroll');
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.getElementById("navPage").classList.add("active");
+    videoLoopCount = 0;
+    videoDom.currentTime = 0;
+    videoDom.play();
+}
+
+function getRandomPlate() {
+    const prefix = ['京A','沪B','粤C','苏D','浙E','川F','鲁G'];
+    const num = Math.floor(Math.random() * 9000 + 1000);
+    return prefix[Math.floor(Math.random() * prefix.length)] + num;
+}
+
+function updateFreeNum() {
+    for(let z in zones){
+        let count = zones[z].filter(s => s.free).length;
+        document.getElementById(z + "_num").innerText = `剩余 ${count} 位`;
+    }
+}
+
+function buildScrollList() {
+    const zoneList = ["A","B","C"];
+    zoneList.forEach(zone => {
+        const wrap = document.getElementById("scroll" + zone);
+        wrap.innerHTML = "";
+        zones[zone].forEach(item => {
+            if(!item.free){
+                const div = document.createElement("div");
+                div.className = "item";
+                let plate = getRandomPlate();
+                div.innerText = `${zone}区：${plate} 车位号：${item.number} 已占用`;
+                wrap.appendChild(div);
+            }
+        });
+        wrap.innerHTML += wrap.innerHTML;
+    });
+}
+
+function startScroll() {
+    const scrollEls = [
+        document.getElementById("scrollA"),
+        document.getElementById("scrollB"),
+        document.getElementById("scrollC")
+    ];
+    let offset = 0;
+    const speed = 0.4;
+    scrollTimer = setInterval(() => {
+        offset += speed;
+        scrollEls.forEach(el => {
+            el.style.transform = `translateY(-${offset}px)`;
+        });
+        const halfHeight = scrollEls[0].offsetHeight / 2;
+        if(offset >= halfHeight) offset = 0;
+    }, 30);
+}
+
+function initZones() {
+    ["A","B","C"].forEach(zone => {
+        for (let i = 1; i <= 12; i++) {
+            let num = i.toString().padStart(3, '0');
+            zones[zone].push({
+                number: zone + num,
+                free: Math.random() > 0.5,
+                idx:i-1
+            });
+        }
+    });
+    updateFreeNum();
+    buildScrollList();
+    startScroll();
+}
+
+function recommendZone() {
+    let maxFree = 0;
+    let bestZone = "";
+    for (let z in zones) {
+        let freeCount = zones[z].filter(s => s.free).length;
+        if (freeCount > maxFree) {
+            maxFree = freeCount;
+            bestZone = z;
+        }
+    }
+    document.getElementById("recommendText").innerText = "⭐ 推荐前往：" + bestZone + "区（空位最多）";
+    document.querySelectorAll(".zone-btn").forEach(btn=>btn.classList.remove('recommend'))
+    document.getElementById("zone"+bestZone+"_btn").classList.add("recommend");
+    return bestZone;
+}
+
+function getInNearSlot(zone){
+    const freeSlots = zones[zone].filter(s=>s.free);
+    if(!freeSlots.length) return null;
+    freeSlots.sort((a,b)=>{
+        let ra = Math.floor(a.idx/4);
+        let rb = Math.floor(b.idx/4);
+        if(ra!==rb) return rb-ra;
+        let ca = a.idx%4+1;
+        let cb = b.idx%4+1;
+        return ca-cb;
+    })
+    return freeSlots[0].number;
+}
+function getOutNearSlot(zone){
+    const freeSlots = zones[zone].filter(s=>s.free);
+    if(!freeSlots.length) return null;
+    freeSlots.sort((a,b)=>{
+        let ra = Math.floor(a.idx/4);
+        let rb = Math.floor(b.idx/4);
+        if(ra!==rb) return ra-rb;
+        let ca = a.idx%4+1;
+        let cb = b.idx%4+1;
+        return cb-ca;
+    })
+    return freeSlots[0].number;
+}
+function getCenterSlot(zone){
+    const freeSlots = zones[zone].filter(s=>s.free);
+    if(!freeSlots.length) return null;
+    freeSlots.sort((a,b)=>{
+        let ra = Math.floor(a.idx/4);
+        let rb = Math.floor(b.idx/4);
+        let scoreRowA = ra===1?0:(ra===2?1:2);
+        let scoreRowB = rb===1?0:(rb===2?1:2);
+        if(scoreRowA!==scoreRowB) return scoreRowA-scoreRowB;
+        let ca = a.idx%4+1;
+        let cb = b.idx%4+1;
+        let scoreColA = ca===2?0:(ca===3?1:(ca===1?2:3));
+        let scoreColB = cb===2?0:(cb===3?1:(cb===1?2:3));
+        return scoreColA-scoreColB;
+    })
+    return freeSlots[0].number;
+}
+
+function closeSelectPopup(){
+    document.getElementById("selectTypePopup").style.display="none";
+}
+function chooseInNear(){
+    closeSelectPopup();
+    runNav(tempBestZone, getInNearSlot(tempBestZone));
+}
+function chooseOutNear(){
+    closeSelectPopup();
+    runNav(tempBestZone, getOutNearSlot(tempBestZone));
+}
+function chooseCenter(){
+    closeSelectPopup();
+    runNav(tempBestZone, getCenterSlot(tempBestZone));
+}
+
+// ========== 仅新增：标题下方三个按钮点击函数，复用原有算法，不改路线 ==========
+function btnInNear(){
+    let slot = getInNearSlot(currentZone);
+    if(!slot){
+        alert(currentZone+"区暂无空闲车位");
+        return;
+    }
+    runNav(currentZone, slot);
+}
+function btnOutNear(){
+    let slot = getOutNearSlot(currentZone);
+    if(!slot){
+        alert(currentZone+"区暂无空闲车位");
+        return;
+    }
+    runNav(currentZone, slot);
+}
+function btnCenter(){
+    let slot = getCenterSlot(currentZone);
+    if(!slot){
+        alert(currentZone+"区暂无空闲车位");
+        return;
+    }
+    runNav(currentZone, slot);
+}
+
+function clearNav() {
+    if(moveTimer){
+        clearInterval(moveTimer);
+        moveTimer = null;
+    }
+    let grid = document.getElementById("parkingGrid");
+    let lines = grid.querySelectorAll(".path-line");
+    lines.forEach(line => line.remove());
+    let arrow = document.getElementById("runArrow");
+    arrow.style.display = "none";
+    arrow.style.transform = "rotate(0deg)";
+    let slots = grid.querySelectorAll(".slot.target");
+    slots.forEach(slot => slot.classList.remove("target"));
+    globalPath = [];
+}
+
+function runNav(zone,slot){
+    if(!slot){
+        alert("所选类型暂无空余车位！");
+        return;
+    }
+    showZone(zone);
+    setTimeout(()=>{
+        currentSlot = slot;
+        const el = document.querySelector(`[data-park="${slot}"]`);
+        el.classList.add("target");
+        const grid = document.getElementById("parkingGrid");
+        const path = getNormalPath();
+        globalPath = path;
+        drawLine(path,grid);
+        smoothMoveArrow(path);
+    },350)
+}
+
+function buildSideRoad(el, isLeft) {
+    el.innerHTML = '';
+    const vDash = document.createElement('div');
+    vDash.className = 'road-dash-vertical';
+    el.appendChild(vDash);
+    const arrowDown = document.createElement('div');
+    arrowDown.className = 'arrow-side-down';
+    arrowDown.innerText = "↓";
+    el.appendChild(arrowDown);
+
+    const arrowUp = document.createElement('div');
+    arrowUp.className = 'arrow-side-up';
+    arrowUp.innerText = "↑";
+    el.appendChild(arrowUp);
+
+    if(isLeft){
+        let entrance = document.createElement('div');
+        entrance.className = 'road-entrance';
+        entrance.innerText = '入口';
+        el.appendChild(entrance);
+    }else{
+        let exit = document.createElement('div');
+        exit.className = 'road-exit';
+        exit.innerText = '出口';
+        el.appendChild(exit);
+    }
+}
+
+function showZone(zone) {
+    userSelectZone = zone;
+    clearNav();
+    currentZone = zone;
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.getElementById("parkingPage").classList.add("active");
+    document.getElementById("zoneTitle").innerText = zone + "区车位";
+    buildSideRoad(document.getElementById('leftRoad'), true);
+    buildSideRoad(document.getElementById('rightRoad'), false);
+    const grid = document.getElementById("parkingGrid");
+    let arrow = document.getElementById("runArrow");
+    grid.innerHTML = "";
+    grid.appendChild(arrow);
+    const list = zones[zone];
+    const totalRow = Math.ceil(list.length / 4);
+    for (let i = 0; i < list.length; i++) {
+        const slot = list[i];
+        const div = document.createElement("div");
+        div.className = "slot " + (slot.free ? "free" : "occupied");
+        div.innerText = slot.number;
+        div.dataset.park = slot.number;
+        const currRow = Math.floor(i / 4) + 1;
+        if (currRow === 1) {
+            let lineBot = document.createElement('div');
+            lineBot.className = 'link-line link-bottom';
+            div.appendChild(lineBot);
+        }
+        else if (currRow === 2) {
+            let lineTop = document.createElement('div');
+            lineTop.className = 'link-line link-top';
+            div.appendChild(lineTop);
+            let lineBot = document.createElement('div');
+            lineBot.className = 'link-line link-bottom';
+            div.appendChild(lineBot);
+        }
+        else if (currRow === totalRow) {
+            let lineTop = document.createElement('div');
+            lineTop.className = 'link-line link-top';
+            div.appendChild(lineTop);
+        }
+        if(slot.free){
+            div.onclick = () => {
+                clearNav();
+                currentSlot = slot.number;
+                document.querySelectorAll('.slot.target').forEach(item=>item.classList.remove('target'))
+                div.classList.add("target");
+                document.getElementById("slotInfo").innerText = "车位：" + slot.number;
+                document.getElementById("popup").style.display = "flex";
+            };
+        }
+        if(!slot.free) div.onclick=null;
+        grid.appendChild(div);
+        if ((i + 1) % 4 === 0 && i !== list.length - 1) {
+            const road = document.createElement("div");
+            road.className = "cross-road";
+            const hDash = document.createElement('div');
+            hDash.className = 'road-dash-horizontal';
+            road.appendChild(hDash);
+            const arrowDown = document.createElement('div');
+            arrowDown.className = 'arrow-down';
+            arrowDown.innerText = "→";
+            road.appendChild(arrowDown);
+
+            const arrowUp = document.createElement('div');
+            arrowUp.className = 'arrow-up';
+            arrowUp.innerText = "←";
+            road.appendChild(arrowUp);
+            grid.appendChild(road);
+        }
+    }
+}
+
+function getNormalPath() {
+    let grid = document.getElementById("parkingGrid");
+    let gridRect = grid.getBoundingClientRect();
+    let leftRoad = document.getElementById("leftRoad");
+    let leftRect = leftRoad.getBoundingClientRect();
+    let targetSlot = document.querySelector(".slot.target");
+    
+    if(!targetSlot){
+        alert("未找到目标车位，请重新点击选择");
+        return [];
+    }
+
+    let slotRect = targetSlot.getBoundingClientRect();
+    let allSlots = grid.querySelectorAll(".slot");
+    let slotIndex = Array.from(allSlots).findIndex(s => s === targetSlot);
+    let targetRow = Math.floor(slotIndex / 4) + 1;
+    let mainX = leftRect.left - gridRect.left + leftRect.width / 2;
+    let path = [];
+    path.push({ x: mainX, y: gridRect.height - 15 });
+
+    if (targetRow === 1) {
+        let roadY = slotRect.bottom - gridRect.top + 8;
+        path.push({ x: mainX, y: roadY });
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: roadY });
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: slotRect.bottom - gridRect.top - 8 });
+    } else if (targetRow === 2) {
+        let roadY = slotRect.top - gridRect.top - 12;
+        path.push({ x: mainX, y: roadY });
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: roadY });
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: slotRect.top - gridRect.top + 8 });
+    } else if(targetRow ===3){
+        let roadY = slotRect.top - gridRect.top - 12;
+        path.push({ x: mainX, y: roadY });
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: roadY });
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: slotRect.top - gridRect.top + 8 });
+    }
+    return path;
+}
+
+function drawLine(points, parent) {
+    parent.querySelectorAll('.path-line').forEach(l=>l.remove())
+    for(let i = 0; i < points.length - 1; i++){
+        let p1 = points[i];
+        let p2 = points[i+1];
+        let line = document.createElement("div");
+        line.className = "path-line";
+        if(p1.x === p2.x){
+            line.style.width = "4px";
+            line.style.height = Math.abs(p2.y - p1.y) + "px";
+            line.style.left = p1.x + "px";
+            line.style.top = Math.min(p1.y, p2.y) + "px";
+        }else{
+            line.style.height = "4px";
+            line.style.width = Math.abs(p2.x - p1.x) + "px";
+            line.style.top = p1.y + "px";
+            line.style.left = Math.min(p1.x, p2.x) + "px";
+        }
+        parent.appendChild(line);
+    }
+}
+
+function getRotateAngle(prev, next) {
+    const dx = next.x - prev.x;
+    const dy = next.y - prev.y;
+    if (dy < -3) return 0;
+    if (dx > 3) return 90;
+    if (dy > 3) return 180;
+    if (dx < -3) return 270;
+    return -1;
+}
+
+function smoothMoveArrow(points) {
+    if(points.length === 0) return;
+
+    const arrowDom = document.getElementById("runArrow");
+    arrowDom.style.display = 'block';
+    let segIndex = 0;
+    let curPos = {...points[0]};
+    arrowDom.style.left = curPos.x - 11 + 'px';
+    arrowDom.style.top = curPos.y - 11 + 'px';
+
+    moveTimer = setInterval(()=>{
+        if(segIndex >= points.length - 1){
+            clearInterval(moveTimer);
+            moveTimer = null;
+            // A002走完直接进实景，无弹窗
+            if(currentSlot === "A002"){
+                enterRealNav();
+            }
+            return;
+        }
+        const s = points[segIndex];
+        const e = points[segIndex+1];
+
+        let ang = getRotateAngle(curPos,e);
+        if(ang !== -1) arrowDom.style.transform = `rotate(${ang}deg)`;
+
+        if(s.x === e.x){
+            curPos.y += curPos.y < e.y ? STEP_SPEED : -STEP_SPEED;
+        }else{
+            curPos.x += curPos.x < e.x ? STEP_SPEED : -STEP_SPEED;
+        }
+
+        const arriveX = Math.abs(curPos.x - e.x) < STEP_SPEED;
+        const arriveY = Math.abs(curPos.y - e.y) < STEP_SPEED;
+        if(arriveX && arriveY){
+            curPos = {...e};
+            segIndex++;
+        }
+        arrowDom.style.left = curPos.x - 11 + 'px';
+        arrowDom.style.top = curPos.y - 11 + 'px';
+    },16);
+}
+
+function startNav(){
+    closePopup();
+    clearNav();
+    const targetEl = document.querySelector(`[data-park="${currentSlot}"]`);
+    if(targetEl) targetEl.classList.add("target");
+    
+    setTimeout(()=>{
+        const grid = document.getElementById("parkingGrid");
+        const path = getNormalPath();
+        if(path.length > 0){
+            globalPath = path;
+            drawLine(path, grid);
+            smoothMoveArrow(path);
+        }
+    },100);
+}
+
+function backHome() {
+    clearNav();
+    userSelectZone = null;
+    document.body.classList.remove('lock-scroll');
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.getElementById("home").classList.add("active");
+}
+
+function closePopup() {
+    document.getElementById("popup").style.display = "none";
+}
+
+function autoSpotRecognitionAndNav() {
+    let recommendZ = recommendZone();
+    if(userSelectZone === null){
+        tempBestZone = recommendZ;
+    }else{
+        tempBestZone = userSelectZone;
+    }
+    document.getElementById("selectTypePopup").style.display = "flex";
+}
+
+document.getElementById("zoneA_btn").onclick = () => showZone("A");
+document.getElementById("zoneB_btn").onclick = () => showZone("B");
+document.getElementById("zoneC_btn").onclick = () => showZone("C");
+
+initZones();
+recommendZone();
+
+</script>
+</body>
+</html>

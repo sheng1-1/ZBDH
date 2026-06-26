@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<!-- 移动端核心适配：禁止缩放、完美适配屏幕 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>停车场异常识别系统</title>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+body {
+    font-family: "Microsoft Yahei", Arial, sans-serif;
+    background: #0f172a;
+    color: #ffffff;
+    text-align: center;
+    padding: 10px;
+    line-height: 1.6;
+    /* 防止手机字体自动缩放 */
+    -webkit-text-size-adjust: 100%;
+    /* 为点缀层做定位支撑 */
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* 星星/圆点点缀装饰 */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* 多层径向渐变，模拟大小、明暗不一的星点/圆点 */
+    background-image:
+        radial-gradient(2px 2px at 25px 35px, #ffffff, transparent),
+        radial-gradient(1px 1px at 60px 80px, #e0f7ff, transparent),
+        radial-gradient(2px 2px at 100px 45px, #ffffff, transparent),
+        radial-gradient(1px 1px at 140px 90px, #cfe8ff, transparent),
+        radial-gradient(2px 2px at 180px 55px, #e0f7ff, transparent),
+        radial-gradient(1px 1px at 220px 130px, #ffffff, transparent),
+        radial-gradient(2px 2px at 270px 70px, #cfe8ff, transparent),
+        radial-gradient(1px 1px at 320px 110px, #e0f7ff, transparent);
+    background-repeat: repeat;
+    background-size: 360px 220px;
+    opacity: 0.4; /* 调高亮度，星点更明显，不刺眼 */
+    z-index: -1; /* 置于最底层 */
+    pointer-events: none; /* 点击穿透，不影响交互 */
+}
+
+h1 {
+    font-size: 1.3rem;
+    margin: 8px 0 15px;
+}
+h2 {
+    font-size: 1.1rem;
+    margin: 12px 0;
+}
+
+/* 返回首页 全局按钮 */
+.back-home {
+    display: inline-block;
+    padding: 7px 16px;
+    background: #1e293b;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 8px;
+    border: 1px solid #3b82f6;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}
+.back-home:hover {
+    background: #3b82f6;
+}
+
+/* 分区选择按钮 A/B/C */
+.zone-btn {
+    width: 94%;
+    margin: 10px auto;
+    padding: 18px 0;
+    background: #1e293b;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: 0.2s;
+}
+.zone-btn:hover{
+    background: #2d3a50;
+}
+
+/* 车场整体容器 — 移动端防错位核心 */
+.park-container {
+    display: flex;
+    align-items: stretch;
+    gap: 3px;
+    width: 100%;
+    margin: 0 auto 15px;
+    position: relative;
+}
+
+/* 左右车道 固定宽度，不自适应挤压 */
+.side-road {
+    width: 26px;
+    flex-shrink: 0; /* 禁止被压缩 */
+    background: #334155;
+    border-radius: 4px 0 0 4px;
+    position: relative;
+}
+#rightRoad{
+    border-radius: 0 4px 4px 0;
+}
+
+.road-dash-vertical {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: repeating-linear-gradient(
+        0deg, #e2e8f0 0px, #e2e8f0 10px, transparent 10px, transparent 20px
+    );
+}
+.road-dash-horizontal {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: repeating-linear-gradient(
+        90deg, #e2e8f0 0px, #e2e8f0 10px, transparent 10px, transparent 20px
+    );
+}
+
+.arrow {
+    position: absolute;
+    color: #3b82f6;
+    font-size: 16px;
+    font-weight: 900;
+    pointer-events: none;
+}
+
+/* 车位网格 — 网格布局自适应，不会错位 */
+.parking-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    position: relative;
+    min-width: 0; /* 修复移动端网格溢出 */
+}
+
+/* 横向车道 */
+.cross-road {
+    grid-column: 1 / -1;
+    height: 34px;
+    background: #334155;
+    position: relative;
+    margin: 5px 0;
+}
+
+/* 车位样式 移动端统一高度 */
+.slot {
+    height: 70px;
+    border-radius: 6px;
+    pointer-events: none;
+    cursor: default;
+    font-weight: bold;
+    font-size: 0.85rem;
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+/* 正常车位状态 */
+.free { background: #22c55e; }
+.occupied { background: #ef4444; }
+.slot.target {
+    box-shadow: 0 0 0 2px #ffcc00;
+    background: #ffaa00;
+    color: #000;
+}
+
+/* 异常图标 + 文字 适配小屏 */
+.error-icon {
+    font-size: 1rem;
+    line-height: 1;
+}
+.error-text {
+    font-size: 0.7rem;
+    color: #fff;
+}
+
+/* 各类异常专属底色 */
+.error-fire { background: #b91c1c !important; }
+.error-exit { background: #c2410c !important; }
+.error-device { background: #4338ca !important; }
+.error-rubbish { background: #854d0e !important; }
+.error-camera { background: #57534e !important; }
+.error-light { background: #0369a1 !important; }
+
+.link-line {
+    position: absolute;
+    width: 5px;
+    height: 8px;
+    background: #64748b;
+    left: 50%;
+    transform: translateX(-50%);
+}
+.link-top { top: -5px; }
+.link-bottom { bottom: -8px; }
+
+.road-entrance, .road-exit {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    font-weight: bold;
+    padding: 2px 4px;
+    border-radius: 2px;
+    color: #000;
+}
+.road-exit { background: #ef4444; top: 3px; }
+.road-entrance { background: #22c55e; bottom: 3px; }
+
+.path-line {
+    position: absolute;
+    background: #ffcc00;
+    z-index: 10;
+    border-radius: 2px;
+}
+.run-arrow {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: #ff6600;
+    clip-path: polygon(50% 0, 0 100%, 100% 100%);
+    z-index: 99;
+    pointer-events: none;
+    display: none;
+    transition: left 1.4s linear, top 1.4s linear, transform 0.3s ease;
+    transform: rotate(0deg);
+}
+
+/* 底部异常汇总面板 移动端全屏适配 */
+.error-summary {
+    width: 100%;
+    margin: 20px auto 10px;
+    padding: 12px;
+    background: #1e293b;
+    border-radius: 12px;
+    text-align: left;
+}
+.summary-title {
+    font-size: 1rem;
+    margin-bottom: 12px;
+    text-align: center;
+    font-weight: bold;
+}
+/* 异常分类区块 */
+.summary-item {
+    padding: 8px;
+    margin: 6px 0;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+}
+/* 分类底色+左侧标识线 */
+.item-fire { background: #b91c1c40; border-left: 4px solid #b91c1c; }
+.item-exit { background: #c2410c40; border-left: 4px solid #c2410c; }
+.item-device { background: #4338ca40; border-left: 4px solid #4338ca; }
+.item-rubbish { background: #854d0e40; border-left: 4px solid #854d0e; }
+.item-camera { background: #57534e40; border-left: 4px solid #57534e; }
+.item-light { background: #0369a140; border-left: 4px solid #0369a1; }
+
+/* 区块高亮：仅框体发光，文字纯白无高光 */
+.block-highlight {
+    filter: brightness(1.6);
+    box-shadow: 0 0 8px 3px #ffdd70;
+    border: 1px solid #ffdd70;
+}
+.highlight {
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: none;
+}
+
+/* 通用按钮 移动端尺寸 */
+button {
+    padding: 10px 20px;
+    margin: 6px 4px;
+    border: none;
+    border-radius: 8px;
+    background: #3b82f6;
+    color: #fff;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+button:hover{
+    background: #5596ff;
+}
+
+/* 页面切换 */
+.page {
+    display: none;
+}
+.active {
+    display: block;
+}
+
+/* 弹窗 移动端居中适配 */
+.popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 10px;
+}
+.popup-content {
+    background: #1e293b;
+    padding: 20px 16px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 320px;
+    font-size: 0.9rem;
+}
+
+/* 实景导航区域 */
+.nav-area {
+    height: 200px;
+    background: #111827;
+    margin: 15px auto;
+    width: 94%;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+</style>
+</head>
+
+<body>
+<h1>🚗 停车场异常识别系统</h1>
+<a href="index.html" class="back-home">← 返回首页</a>
+
+<!-- 首页：A/B/C分区选择 -->
+<div id="home" class="page active">
+    <div class="zone-btn" onclick="renderPark('A')">A区</div>
+    <div class="zone-btn" onclick="renderPark('B')">B区</div>
+    <div class="zone-btn" onclick="renderPark('C')">C区</div>
+</div>
+
+<!-- 车场视图页面 -->
+<div id="parkingPage" class="page">
+    <h2 id="zoneTitle"></h2>
+    <div class="park-container">
+        <div class="side-road" id="leftRoad"></div>
+        <div class="parking-grid" id="parkingGrid">
+            <div class="run-arrow" id="runArrow"></div>
+        </div>
+        <div class="side-road" id="rightRoad"></div>
+    </div>
+    <button onclick="backZone()">返回分区</button>
+
+    <!-- 底部异常汇总面板 -->
+    <div class="error-summary" id="errorSummary">
+        <div class="summary-title">📋 全场异常车位汇总</div>
+        <div class="summary-item item-fire" id="sumFire">占用消防通道：暂无</div>
+        <div class="summary-item item-exit" id="sumExit">堵塞出入口：暂无</div>
+        <div class="summary-item item-device" id="sumDevice">设备故障：暂无</div>
+        <div class="summary-item item-rubbish" id="sumRubbish">垃圾堆积：暂无</div>
+        <div class="summary-item item-camera" id="sumCamera">监控损坏：暂无</div>
+        <div class="summary-item item-light" id="sumLight">指示灯损坏：暂无</div>
+    </div>
+</div>
+
+<!-- 实景导航页 -->
+<div id="navPage" class="page">
+    <h2 id="navTitle"></h2>
+    <div class="nav-area">📍 实景导航区域</div>
+    <button onclick="backZone()">返回分区</button>
+</div>
+
+<!-- 弹窗 -->
+<div class="popup" id="arrivePopup">
+    <div class="popup-content">
+        <p>已成功到达目标车位！</p>
+        <p style="margin:10px 0;">是否需要导航前往出口？</p>
+        <button onclick="navToExit()">前往出口</button>
+        <button onclick="closeAllPopup()">取消</button>
+    </div>
+</div>
+<div class="popup" id="slotPopup">
+    <div class="popup-content">
+        <div id="slotInfo"></div>
+        <button onclick="goNav()">进入导航</button>
+        <button onclick="closeAllPopup()">关闭</button>
+    </div>
+</div>
+
+<script>
+// 异常数据：车位号、类型、图标、文字
+const errorData = {
+    "A002": { type: "fire", icon: "⚠️", text: "占用消防通道" },
+    "A005": { type: "exit", icon: "🚧", text: "堵塞出入口" },
+    "A007": { type: "device", icon: "🔧", text: "设备故障" },
+    "B003": { type: "rubbish", icon: "🗑️", text: "垃圾堆积" },
+    "B006": { type: "camera", icon: "📷", text: "监控损坏" },
+    "C004": { type: "light", icon: "💡", text: "指示灯损坏" },
+    "C009": { type: "fire", icon: "⚠️", text: "占用消防通道" }
+};
+
+// 分类映射
+const typeMap = {
+    fire: { el: "sumFire", name: "占用消防通道" },
+    exit: { el: "sumExit", name: "堵塞出入口" },
+    device: { el: "sumDevice", name: "设备故障" },
+    rubbish: { el: "sumRubbish", name: "垃圾堆积" },
+    camera: { el: "sumCamera", name: "监控损坏" },
+    light: { el: "sumLight", name: "指示灯损坏" }
+};
+
+let zones = { A: [], B: [], C: [] };
+let currentSlot = "";
+let currentZone = "";
+let targetParkCode = "";
+let moveTimer = null;
+let isExitNav = false;
+const POINT_INTERVAL = 1400;
+
+// 初始化车位数据
+function initZones() {
+    ["A","B","C"].forEach(zone => {
+        for (let i = 1; i <= 12; i++) {
+            let num = i.toString().padStart(3, '0');
+            zones[zone].push({
+                number: zone + num,
+                free: Math.random() > 0.5
+            });
+        }
+    });
+}
+
+// 刷新汇总面板：区块整体高亮，文字纯白无发光
+function refreshSummary(nowZone) {
+    Object.values(typeMap).forEach(item => {
+        const dom = document.getElementById(item.el);
+        dom.innerHTML = `${item.name}：暂无`;
+        dom.classList.remove("highlight", "block-highlight");
+    });
+
+    let group = {};
+    let currentZoneErrType = new Set();
+    for(let key in typeMap){
+        group[key] = [];
+    }
+
+    for(let park in errorData){
+        const t = errorData[park].type;
+        group[t].push(park);
+        if(park.startsWith(nowZone)){
+            currentZoneErrType.add(t);
+        }
+    }
+
+    for(let t in group){
+        const allList = group[t];
+        const cfg = typeMap[t];
+        const dom = document.getElementById(cfg.el);
+
+        if(allList.length === 0) continue;
+
+        if (currentZoneErrType.has(t)) {
+            dom.classList.add("block-highlight");
+        }
+
+        let htmlText = `${cfg.name}：`;
+        allList.forEach(p => {
+            if(p.startsWith(nowZone)){
+                htmlText += `<span class="highlight">${p}</span>、`;
+            } else {
+                htmlText += `${p}、`;
+            }
+        });
+        htmlText = htmlText.replace(/、$/, "");
+        dom.innerHTML = htmlText;
+    }
+}
+
+// 构建车道
+function buildSideRoad(el, isLeft) {
+    el.innerHTML = '';
+    let vDash = document.createElement('div');
+    vDash.className = 'road-dash-vertical';
+    el.appendChild(vDash);
+
+    const arrDown = document.createElement('div');
+    arrDown.className = 'arrow';
+    arrDown.style.top = "50%";
+    arrDown.style.left = "25%";
+    arrDown.style.transform = "translate(-50%, -50%)";
+    arrDown.innerText = "↓";
+    el.appendChild(arrDown);
+
+    const arrUp = document.createElement('div');
+    arrUp.className = 'arrow';
+    arrUp.style.top = "50%";
+    arrUp.style.right = "25%";
+    arrUp.style.transform = "translate(50%, -50%)";
+    arrUp.innerText = "↑";
+    el.appendChild(arrUp);
+
+    if(isLeft) {
+        let entrance = document.createElement('div');
+        entrance.className = 'road-entrance';
+        entrance.innerText = '入口';
+        el.appendChild(entrance);
+    } else {
+        let exit = document.createElement('div');
+        exit.className = 'road-exit';
+        exit.innerText = '出口';
+        el.appendChild(exit);
+    }
+}
+
+// 清空导航路线
+function clearNav() {
+    if(moveTimer){
+        clearInterval(moveTimer);
+        moveTimer = null;
+    }
+    let grid = document.getElementById("parkingGrid");
+    let lines = grid.querySelectorAll(".path-line");
+    lines.forEach(line => line.remove());
+    let arrow = document.getElementById("runArrow");
+    arrow.style.display = "none";
+    arrow.style.transform = "rotate(0deg)";
+    let slots = grid.querySelectorAll(".slot.target");
+    slots.forEach(slot => slot.classList.remove("target"));
+}
+
+// 渲染分区车位
+function renderPark(zone) {
+    currentZone = zone;
+    clearNav();
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.getElementById("parkingPage").classList.add("active");
+    document.getElementById("zoneTitle").innerText = `${zone}区车位 · 异常巡检`;
+
+    buildSideRoad(document.getElementById('leftRoad'), true);
+    buildSideRoad(document.getElementById('rightRoad'), false);
+
+    let grid = document.getElementById("parkingGrid");
+    let arrow = document.getElementById("runArrow");
+    grid.innerHTML = "";
+    grid.appendChild(arrow);
+
+    let parkList = zones[zone];
+    let totalRow = Math.ceil(parkList.length / 4);
+
+    for (let i = 0; i < parkList.length; i++) {
+        let item = parkList[i];
+        let slotDiv = document.createElement("div");
+        slotDiv.className = "slot " + (item.free ? "free" : "occupied");
+        slotDiv.innerText = item.number;
+        slotDiv.dataset.park = item.number;
+
+        if(item.number === targetParkCode){
+            slotDiv.classList.add("target");
+        }
+
+        if(errorData[item.number]) {
+            const err = errorData[item.number];
+            slotDiv.classList.add(`error-${err.type}`);
+
+            let icon = document.createElement("div");
+            icon.className = "error-icon";
+            icon.innerText = err.icon;
+            slotDiv.appendChild(icon);
+
+            let text = document.createElement("div");
+            text.className = "error-text";
+            text.innerText = err.text;
+            slotDiv.appendChild(text);
+        }
+
+        let row = Math.floor(i / 4) + 1;
+        if(row === 1){
+            let link = document.createElement("div");
+            link.className = "link-line link-bottom";
+            slotDiv.appendChild(link);
+        }else if(row === 2){
+            let linkTop = document.createElement("div");
+            linkTop.className = "link-line link-top";
+            slotDiv.appendChild(linkTop);
+            let linkBot = document.createElement("div");
+            linkBot.className = "link-line link-bottom";
+            slotDiv.appendChild(linkBot);
+        }else if(row === totalRow){
+            let link = document.createElement("div");
+            link.className = "link-line link-top";
+            slotDiv.appendChild(link);
+        }
+        grid.appendChild(slotDiv);
+
+        if((i + 1) % 4 === 0 && i !== parkList.length - 1){
+            let crossRoad = document.createElement("div");
+            crossRoad.className = "cross-road";
+            let hDash = document.createElement("div");
+            hDash.className = 'road-dash-horizontal';
+            crossRoad.appendChild(hDash);
+
+            const arrowTop = document.createElement('div');
+            arrowTop.className = 'arrow';
+            arrowTop.style.left = "50%";
+            arrowTop.style.top = "25%";
+            arrowTop.style.transform = "translate(-50%, -50%)";
+            arrowTop.innerText = "←";
+            crossRoad.appendChild(arrowTop);
+
+            const arrowBottom = document.createElement('div');
+            arrowBottom.className = 'arrow';
+            arrowBottom.style.left = "50%";
+            arrowBottom.style.top = "75%";
+            arrowBottom.style.transform = "translate(-50%, -50%)";
+            arrowBottom.innerText = "→";
+            crossRoad.appendChild(arrowBottom);
+
+            grid.appendChild(crossRoad);
+        }
+    }
+    refreshSummary(zone);
+}
+
+// 导航路径逻辑
+function getNormalPath() {
+    let grid = document.getElementById("parkingGrid");
+    let gridRect = grid.getBoundingClientRect();
+    let leftRoad = document.getElementById("leftRoad");
+    let leftRect = leftRoad.getBoundingClientRect();
+    let targetSlot = document.querySelector(".slot.target");
+    let slotRect = targetSlot.getBoundingClientRect();
+
+    let allSlots = grid.querySelectorAll(".slot");
+    let slotIndex = Array.from(allSlots).findIndex(s => s === targetSlot);
+    let targetRow = Math.floor(slotIndex / 4) + 1;
+
+    let mainX = leftRect.left - gridRect.left + leftRect.width / 2;
+    let path = [];
+    path.push({ x: mainX, y: gridRect.height - 20 });
+
+    if (targetRow === 1) {
+        let roadY = slotRect.bottom - gridRect.top + 10;
+        path.push({ x: mainX, y: roadY });
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: roadY });
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: slotRect.bottom - gridRect.top - 10 });
+    } else if (targetRow === 2 || targetRow === 3) {
+        let roadY = slotRect.top - gridRect.top - 20;
+        path.push({ x: mainX, y: roadY });
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: roadY });
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: slotRect.top - gridRect.top + 10 });
+    }
+    return path;
+}
+
+function getExitPath() {
+    let grid = document.getElementById("parkingGrid");
+    let gridRect = grid.getBoundingClientRect();
+    let rightRoad = document.getElementById("rightRoad");
+    let rightRect = rightRoad.getBoundingClientRect();
+    let targetSlot = document.querySelector(".slot.target");
+    let slotRect = targetSlot.getBoundingClientRect();
+
+    let allSlots = grid.querySelectorAll(".slot");
+    let slotIndex = Array.from(allSlots).findIndex(s => s === targetSlot);
+    let targetRow = Math.floor(slotIndex / 4) + 1;
+    let exitX = rightRect.left - gridRect.left + rightRect.width / 2;
+    let path = [];
+
+    if (targetRow === 1) {
+        let roadY = slotRect.bottom - gridRect.top + 10;
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: slotRect.bottom - gridRect.top - 10 });
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: roadY });
+        path.push({ x: exitX, y: roadY });
+        path.push({ x: exitX, y: 20 });
+    } else {
+        let roadY = slotRect.top - gridRect.top - 20;
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: slotRect.top - gridRect.top + 10 });
+        path.push({ x: slotRect.left - gridRect.left + slotRect.width / 2, y: roadY });
+        path.push({ x: exitX, y: roadY });
+        path.push({ x: exitX, y: 20 });
+    }
+    return path;
+}
+
+function drawLine(points, parent) {
+    for(let i = 0; i < points.length - 1; i++){
+        let p1 = points[i];
+        let p2 = points[i+1];
+        let line = document.createElement("div");
+        line.className = "path-line";
+        if(p1.x === p2.x){
+            line.style.width = "3px";
+            line.style.height = Math.abs(p2.y - p1.y) + "px";
+            line.style.left = p1.x + "px";
+            line.style.top = Math.min(p1.y, p2.y) + "px";
+        }else{
+            line.style.height = "3px";
+            line.style.width = Math.abs(p2.y - p1.y) + "px";
+            line.style.top = p1.y + "px";
+            line.style.left = Math.min(p1.x, p2.x) + "px";
+        }
+        parent.appendChild(line);
+    }
+}
+
+function getRotateAngle(prev, curr) {
+    let dx = curr.x - prev.x;
+    let dy = curr.y - prev.y;
+    if (dy > 10) return 180;
+    if (dx > 10) return 90;
+    if (dy < -10) return 0;
+    if (dx < -10) return 270;
+    return -1;
+}
+
+function moveArrow(points) {
+    let arrow = document.getElementById("runArrow");
+    arrow.style.display = "block";
+    let idx = 0;
+    moveTimer = setInterval(() => {
+        if(idx >= points.length){
+            clearInterval(moveTimer);
+            moveTimer = null;
+            if(!isExitNav){
+                setTimeout(()=>{
+                    document.getElementById("arrivePopup").style.display = "flex";
+                }, 400);
+            }else{
+                alert("已顺利到达出口！");
+            }
+            return;
+        }
+        let curr = points[idx];
+        if(idx > 0){
+            let angle = getRotateAngle(points[idx-1], curr);
+            if(angle !== -1){
+                arrow.style.transform = `rotate(${angle}deg)`;
+            }
+        }
+        arrow.style.left = curr.x - 8 + "px";
+        arrow.style.top = curr.y - 8 + "px";
+        idx++;
+    }, POINT_INTERVAL);
+}
+
+function drawPathAndMove() {
+    let grid = document.getElementById("parkingGrid");
+    isExitNav = false;
+    let path = getNormalPath();
+    drawLine(path, grid);
+    moveArrow(path);
+}
+
+function navToExit() {
+    closeAllPopup();
+    isExitNav = true;
+    let grid = document.getElementById("parkingGrid");
+    let path = getExitPath();
+    drawPathAndMove(path);
+    moveArrow(path);
+}
+
+// 返回分区页
+function backZone() {
+    clearNav();
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.getElementById("home").classList.add("active");
+}
+
+// 关闭弹窗
+function closeAllPopup() {
+    document.getElementById("slotPopup").style.display = "none";
+    document.getElementById("arrivePopup").style.display = "none";
+}
+
+function goNav() {
+    closeAllPopup();
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.getElementById("navPage").classList.add("active");
+    document.getElementById("navTitle").innerText = "导航到车位 " + currentSlot;
+}
+
+// 初始化
+initZones();
+</script>
+</body>
+</html>

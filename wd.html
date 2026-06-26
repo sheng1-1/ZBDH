@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<!-- 强化移动端适配：禁止缩放、全面屏适配、锁定视口、防止系统自动调整字体 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- 禁止安卓/ios 识别手机号、邮箱自动跳转，避免布局错乱 -->
+<meta name="format-detection" content="telephone=no,email=no">
+<title>个人 - 智泊导行</title>
+<link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    /* 全局禁止元素压缩变形 */
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+body {
+    font-family: "Microsoft Yahei", Arial, sans-serif;
+    background: #0f172a;
+    color: #ffffff;
+    text-align: center;
+    line-height: 1.8;
+    /* 强制字体大小固定，手机不会自动放大缩小文字 */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    overscroll-behavior: none;
+    overflow-x: hidden;
+    /* 上下左右内边距适配手机，左右留安全边距，防止贴边 */
+    padding: 20px 12px 80px;
+    position: relative;
+    /* 禁止页面弹性回弹 */
+    overscroll-behavior-y: contain;
+}
+
+/* 星空背景 完全保留 */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(2px 2px at 20px 30px, #ffffff, transparent),
+        radial-gradient(1px 1px at 55px 85px, #e0f7ff, transparent),
+        radial-gradient(2px 2px at 95px 40px, #ffffff, transparent),
+        radial-gradient(1px 1px at 135px 95px, #cfe8ff, transparent),
+        radial-gradient(3px 3px at 175px 50px, #e0f7ff, transparent),
+        radial-gradient(1px 1px at 215px 135px, #ffffff, transparent),
+        radial-gradient(2px 2px at 265px 75px, #cfe8ff, transparent),
+        radial-gradient(1px 1px at 315px 115px, #e0f7ff, transparent),
+        radial-gradient(2px 2px at 365px 25px, #ffffff, transparent),
+        radial-gradient(1px 1px at 405px 105px, #cfe8ff, transparent);
+    background-repeat: repeat;
+    background-size: 400px 240px;
+    z-index: -1;
+    pointer-events: none;
+    animation: starTwinkle 3.2s ease-in-out infinite alternate;
+}
+@keyframes starTwinkle {
+    0% { opacity: 0.22; }
+    100% { opacity: 0.43; }
+}
+
+.page-title {
+    font-size: 1.8rem;
+    color: #00f0ff;
+    margin: 10px 0 25px;
+    letter-spacing: 2px;
+    position: relative;
+}
+.page-title::after {
+    content: '';
+    display: block;
+    width: 80px;
+    height: 2px;
+    background: linear-gradient(90deg, #00f0ff, #00ff88);
+    margin: 8px auto 0;
+    border-radius: 1px;
+}
+
+/* 通用卡片：手机端自适应，严格限制最大宽度，杜绝拉伸/挤压 */
+.common-card {
+    background: #1e293b;
+    border: 1px solid rgba(0,240,255,0.25);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto 20px;
+    padding: 25px 16px;
+    box-shadow: 0 0 18px rgba(0, 240, 255, 0.08);
+}
+
+.car-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 10px;
+}
+
+/* ========== 纯CSS绘制特斯拉侧视图（加固比例，手机绝不拉伸变形） ========== */
+.car-container {
+    position: relative;
+    /* 固定宽高比例，小屏自动缩小、大屏不放大，比例永久不变 */
+    width: 100%;
+    max-width: 280px;
+    height: 90px;
+}
+/* 车身主体 流线型特斯拉造型 */
+.car-main {
+    position: absolute;
+    bottom: 18px;
+    left: 0;
+    width: 100%;
+    height: 46px;
+    background: #f5f5f5;
+    border-radius: 30px 12px 12px 30px;
+}
+/* 车顶与流线型车窗 */
+.car-top {
+    position: absolute;
+    bottom: 54px;
+    left: 14%;
+    width: 57%;
+    height: 28px;
+    background: #0f172a;
+    border-radius: 14px 8px 0 0;
+}
+/* 车窗分割线 */
+.car-split {
+    position: absolute;
+    bottom: 54px;
+    left: 30%;
+    width: 2px;
+    height: 28px;
+    background: #cccccc;
+}
+/* 车轮 */
+.car-wheel {
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    background: #222;
+    border: 3px solid #ddd;
+    border-radius: 50%;
+}
+.wheel-rear {
+    left: 15%;
+    bottom: 0;
+}
+.wheel-front {
+    right: 15%;
+    bottom: 0;
+}
+/* 尾灯 */
+.car-tail {
+    position: absolute;
+    left: 4%;
+    bottom: 34px;
+    width: 8px;
+    height: 8px;
+    background: #ff3333;
+    border-radius: 50%;
+}
+/* 前灯 */
+.car-head {
+    position: absolute;
+    right: 4%;
+    bottom: 34px;
+    width: 8px;
+    height: 8px;
+    background: #fef08a;
+    border-radius: 50%;
+}
+/* ====================================================================== */
+
+/* 信息条目：手机端对齐优化，文字不挤压、不错位 */
+.info-item {
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+    margin: 12px 0;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.5);
+    /* 单行显示，禁止文字自动换行错乱 */
+    white-space: nowrap;
+}
+.info-item i {
+    font-size: 1.2rem;
+    color: #00ff88;
+    width: 36px;
+    text-align: center;
+    margin-right: 8px;
+}
+.info-label {
+    color: #00f0ff;
+    min-width: 82px;
+    display: inline-block;
+}
+.info-value {
+    color: #ffffff;
+    flex: 1;
+    text-align: left;
+    /* 超长文字自动省略，不挤布局 */
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 板块标题样式 */
+.new-title {
+    font-size: 1.1rem;
+    color: #00f0ff;
+    text-align: left;
+    margin-bottom: 15px;
+    padding-left: 8px;
+    border-left: 3px solid #00ff88;
+}
+
+.tag-warn {
+    color: #ffcc00;
+}
+.tag-normal {
+    color: #00ff88;
+}
+
+/* 底部固定导航栏（全局最强适配，等分不挤压、不错位） */
+.tab-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 65px;
+    background: #0a192f;
+    display: flex;
+    border-top: 1px solid rgba(0,240,255,0.2);
+    z-index: 9999;
+}
+.tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    font-size: 12px;
+    cursor: pointer;
+    /* 导航项强制等分，任何屏幕都不会挤压 */
+    min-width: 0;
+}
+.tab-item i {
+    font-size: 22px;
+    margin-bottom: 4px;
+}
+.nav-active {
+    color: #00f0ff;
+}
+a {
+    text-decoration: none;
+    color: #fff;
+}
+</style>
+</head>
+
+<body>
+<h2 class="page-title">车主中心</h2>
+
+<!-- 车辆卡片：纯CSS特斯拉侧视图（比例加固，手机不变形） -->
+<div class="common-card car-card">
+    <div class="car-container">
+        <div class="car-main"></div>
+        <div class="car-top"></div>
+        <div class="car-split"></div>
+        <div class="car-wheel wheel-rear"></div>
+        <div class="car-wheel wheel-front"></div>
+        <div class="car-tail"></div>
+        <div class="car-head"></div>
+    </div>
+</div>
+
+<!-- 基础信息卡片（完全保留原内容） -->
+<div class="common-card">
+    <div class="info-item">
+        <i class="fa fa-id-card"></i>
+        <span class="info-label">车牌号码：</span>
+        <span class="info-value">京A12345</span>
+    </div>
+    <div class="info-item">
+        <i class="fa fa-map-marker"></i>
+        <span class="info-label">绑定车位：</span>
+        <span class="info-value">A区 A001</span>
+    </div>
+    <div class="info-item">
+        <i class="fa fa-clock-o"></i>
+        <span class="info-label">入场时间：</span>
+        <span class="info-value">2025-05-30 09:10:00</span>
+    </div>
+</div>
+
+<!-- 车位与车辆档案（完全保留原内容） -->
+<div class="common-card">
+    <h3 class="new-title">车位与车辆档案</h3>
+    <div class="info-item">
+        <i class="fa fa-car"></i>
+        <span class="info-label">车辆类型：</span>
+        <span class="info-value">小型乘用车</span>
+    </div>
+    <div class="info-item">
+        <i class="fa fa-archive"></i>
+        <span class="info-label">车位类型：</span>
+        <span class="info-value tag-normal">标准固定车位</span>
+    </div>
+    <div class="info-item">
+        <i class="fa fa-calendar-check-o"></i>
+        <span class="info-label">签约状态：</span>
+        <span class="info-value tag-normal">正常生效</span>
+    </div>
+    <div class="info-item">
+        <i class="fa fa-history"></i>
+        <span class="info-label">本月停放：</span>
+        <span class="info-value">12 次</span>
+    </div>
+    <div class="info-item">
+        <i class="fa fa-comment-o"></i>
+        <span class="info-label">温馨提示：</span>
+        <span class="info-value">离场前请完成缴费</span>
+    </div>
+</div>
+
+<!-- 底部固定导航栏 -->
+<div class="tab-bar">
+    <!-- 首页 优先 sy，不行就去掉.html -->
+    <div class="tab-item" onclick="location.href='index.html'">
+        <i class="fa fa-home"></i>
+        <span>首页</span>
+    </div>
+    <!-- 寻车 -->
+    <div class="tab-item" onclick="location.href='xc.html'">
+        <i class="fa fa-map-marker"></i>
+        <span>寻车</span>
+    </div>
+    <!-- 缴费 -->
+    <div class="tab-item" onclick="location.href='jf.html'">
+        <i class="fa fa-credit-card"></i>
+        <span>缴费</span>
+    </div>
+    <!-- 个人 -->
+    <div class="tab-item nav-active" onclick="location.href='wd.html'">
+        <i class="fa fa-user"></i>
+        <span>个人</span>
+    </div>
+</div>

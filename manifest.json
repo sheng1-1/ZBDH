@@ -1,0 +1,16 @@
+{
+    "id" : "H5A2060C8",
+    "name" : "时笙",
+    "version" : {
+        "name" : "1.0.0"
+    },
+    "launch_path" : "index.html",
+    "fullscreen" : true,
+    "plus" : {
+        "distribute" : {
+            "ios" : {
+                "dSYMs" : false
+            }
+        }
+    }
+}

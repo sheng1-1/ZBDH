@@ -2,57 +2,282 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <!-- 移动端严格适配，禁止缩放，保证布局稳定 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>智泊导行</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'cyber-blue': '#00f0ff',
+                        'cyber-green': '#00ff88',
+                        'cyber-red': '#ff3333',
+                        'cyber-yellow': '#ffcc00',
+                        'cyber-dark': '#0a192f',
+                        'cyber-darker': '#050d1a',
+                        'cyber-gray': '#112240',
+                    },
+                }
+            }
+        }
+    </script>
     <style>
-        *{
+        * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        body{
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #cce8ff;
-        }
-        .home-container{
-            width: 100%;
-            max-width: 400px;
-            aspect-ratio: 9 / 16;
-            background: url("images/your_home_by.png") no-repeat center center;
-            background-size: contain;
+        body {
+            background: linear-gradient(135deg, #050d1a 0%, #0a192f 50%, #112240 100%);
+            font-family: 'Segoe UI', sans-serif;
+            color: white;
+            min-height: 100vh;
+            /* 关键修改：为底部导航预留65px空间，避免内容被遮挡 */
+            padding-bottom: 65px;
             position: relative;
+            overflow-x: hidden;
         }
-        /* 三个透明点击层，完全按你画的黄色框精准匹配 */
-        .click-btn{
-            position: absolute;
-            left: 20%;
-            right: 20%;
-            height: 6%;
+
+        /* 星星闪烁背景 完全保留 */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                radial-gradient(2px 2px at 20px 30px, #ffffff, transparent),
+                radial-gradient(1px 1px at 55px 85px, #e0f7ff, transparent),
+                radial-gradient(2px 2px at 95px 40px, #ffffff, transparent),
+                radial-gradient(1px 1px at 135px 95px, #cfe8ff, transparent),
+                radial-gradient(3px 3px at 175px 50px, #e0f7ff, transparent),
+                radial-gradient(1px 1px at 215px 135px, #ffffff, transparent),
+                radial-gradient(2px 2px at 265px 75px, #cfe8ff, transparent),
+                radial-gradient(1px 1px at 315px 115px, #e0f7ff, transparent),
+                radial-gradient(2px 2px at 365px 25px, #ffffff, transparent),
+                radial-gradient(1px 1px at 405px 105px, #cfe8ff, transparent);
+            background-repeat: repeat;
+            background-size: 400px 240px;
+            z-index: -1;
+            pointer-events: none;
+            animation: starTwinkle 3.2s ease-in-out infinite alternate;
+        }
+
+        @keyframes starTwinkle {
+            0% { opacity: 0.22; }
+            100% { opacity: 0.43; }
+        }
+
+        /* 底部导航栏 永久固定核心样式 */
+        .tab-bar {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 65px;
+            background: #0a192f;
+            display: flex;
+            border-top: 1px solid rgba(0,240,255,0.2);
+            z-index: 9999; /* 极高层级，确保不会被其他元素遮挡 */
+            /* 防止点击穿透和移动端兼容性优化 */
+            pointer-events: auto;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+        }
+        .tab-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            font-size: 12px;
             cursor: pointer;
         }
-        /* 车位选择（第一个框） */
-        .btn-park{
-            top: 60.5%;
+        .tab-item i {
+            font-size: 22px;
+            margin-bottom: 4px;
         }
-        /* 一键寻车（第二个框） */
-        .btn-find{
-            top: 72.5%;
+        .nav-active {
+            color: #00f0ff;
         }
-        /* 异常预警（第三个框） */
-        .btn-warn{
-            top: 80.5%;
+        a{
+            text-decoration: none;
+            color: #fff;
+        }
+
+        /* 数据展示框 移动端弹性布局，防止变形 */
+        .data-box {
+            width: 100%;
+            background: rgba(17, 34, 64, 0.7);
+            border: 1px solid rgba(0, 255, 136, 0.4);
+            border-radius: 16px;
+            display: flex;
+            align-items: stretch;
+            margin-top: 1rem;
+            margin-bottom: 2rem;
+            overflow: hidden;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.2);
+        }
+
+        /* 左侧竖排文字 保持原样 */
+        .vertical-text {
+            padding: 1rem 0.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .vertical-text span {
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+            color: #00ff88;
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+        }
+
+        /* 中间分隔竖线 保持原样 */
+        .divider {
+            width: 1px;
+            background: rgba(0, 255, 136, 0.5);
+        }
+
+        /* 右侧数据容器 弹性等分，手机端自适应 */
+        .data-content {
+            flex: 1;
+            display: flex;
+            align-items: stretch;
+        }
+        .data-col {
+            flex: 1;
+            text-align: center;
+            border-right: 1px solid rgba(0, 255, 136, 0.3);
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 1.2rem 0.2rem;
+        }
+        .data-col:last-child {
+            border-right: none;
+        }
+
+        /* 顶部标题：准确率/覆盖率/车位状态 强制水平平齐 */
+        .data-label {
+            color: #86ffc0;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            white-space: nowrap;
+            margin: 0;
+        }
+
+        /* 前两列：99.9%、100% 间距固定，位置不动 */
+        .data-col > div:nth-child(2) {
+            margin-top: 1.1rem;
+        }
+
+        /* 单独给第三列：毫秒级同步 增加间距，实现单独下移 */
+        .data-col.sync-item > div:nth-child(2) {
+            margin-top: 1.4rem;
+        }
+
+        /* 99.9% / 100% 保持原有字号样式 */
+        .data-num {
+            color: #00ff88;
+            font-size: 2rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        /* 毫秒级同步：保持缩小字号 */
+        .data-text {
+            color: #00ff88;
+            font-size: 1.3rem;
+            font-weight: 900;
+            line-height: 1;
         }
     </style>
 </head>
+
 <body>
-    <div class="home-container">
-        <a href="park.html" class="click-btn btn-park"></a>
-        <a href="findcar.html" class="click-btn btn-find"></a>
-        <a href="warn.html" class="click-btn btn-warn"></a>
+    <div class="min-h-screen w-full max-w-md mx-auto px-4 py-8">
+        <div class="text-center mt-10 mb-12">
+            <h1 class="text-4xl font-bold text-cyber-blue mb-2">智泊导行</h1>
+            <p class="text-gray-400">高效 · 安全 · 便捷</p>
+        </div>
+
+        <div class="grid gap-6 mb-6">
+            <a href="kwsb.html" class="bg-gray-800/40 rounded-2xl p-8 text-center backdrop-blur-lg border border-white/10">
+                <i class="fa fa-car text-5xl text-cyber-green mb-4"></i>
+                <h2 class="text-2xl font-bold mb-2">空位识别</h2>
+                <p class="text-gray-400">快速查找空闲车位</p>
+            </a>
+
+            <a href="yjxc.html" class="bg-gray-800/40 rounded-2xl p-8 text-center backdrop-blur-lg border border-white/10">
+                <i class="fa fa-bolt text-5xl text-cyber-yellow mb-4"></i>
+                <h2 class="text-2xl font-bold mb-2">一键寻车</h2>
+                <p class="text-gray-400">反向导航快速取车</p>
+            </a>
+
+            <a href="ycyj.html" class="bg-gray-800/40 rounded-2xl p-8 text-center backdrop-blur-lg border border-white/10">
+                <i class="fa fa-exclamation-triangle text-5xl text-cyber-red mb-4"></i>
+                <h2 class="text-2xl font-bold mb-2">异常预警</h2>
+                <p class="text-gray-400">实时监控车库安全</p>
+            </a>
+        </div>
+
+        <div class="data-box">
+            <!-- 左侧竖排标题 无改动 -->
+            <div class="vertical-text">
+                <span>空位识别</span>
+            </div>
+            <!-- 绿色分割线 无改动 -->
+            <div class="divider"></div>
+            <!-- 右侧数据区域 -->
+            <div class="data-content">
+                <div class="data-col">
+                    <div class="data-label">准确率</div>
+                    <div class="data-num">99.9%</div>
+                </div>
+                <div class="data-col">
+                    <div class="data-label">覆盖率</div>
+                    <div class="data-num">100%</div>
+                </div>
+                <!-- 仅给第三列添加专属类，单独控制间距 -->
+                <div class="data-col sync-item">
+                    <div class="data-label">车位状态</div>
+                    <div class="data-text">毫秒级同步</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 底部导航 永久固定，永不消失 -->
+    <div class="tab-bar">
+        <div class="tab-item nav-active">
+            <i class="fa fa-home"></i>
+            <span>首页</span>
+        </div>
+        <div class="tab-item" onclick="location.href='xc.html'">
+            <i class="fa fa-map-marker"></i>
+            <span>寻车</span>
+        </div>
+        <div class="tab-item" onclick="location.href='jf.html'">
+            <i class="fa fa-credit-card"></i>
+            <span>缴费</span>
+        </div>
+        <!-- 仅此处新增跳转：点击跳转到 wd.html，其余代码完全未改动 -->
+        <div class="tab-item" onclick="location.href='wd.html'">
+            <i class="fa fa-user"></i>
+            <span>个人</span>
+        </div>
     </div>
 </body>
 </html>

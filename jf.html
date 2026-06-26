@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<!-- 移动端严格适配：禁止缩放、适配全面屏，杜绝页面变形/错位 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>停车缴费</title>
+<!-- 引入字体图标库（用于底部导航图标） -->
+<link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+    text-align: center;
+    position: relative;
+    overflow-x: hidden;
+    /* 预留底部导航高度，防止内容被遮挡 */
+    padding-bottom: 65px;
+}
+
+/* 星星闪烁背景 保留原有动画与样式 */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(2px 2px at 20px 30px, #ffffff, transparent),
+        radial-gradient(2px 2px at 40px 70px, #e6f7ff, transparent),
+        radial-gradient(1px 1px at 90px 40px, #ffffff, transparent),
+        radial-gradient(2px 2px at 130px 80px, #cfe8ff, transparent),
+        radial-gradient(1px 1px at 160px 120px, #ffffff, transparent),
+        radial-gradient(2px 2px at 200px 50px, #e6f7ff, transparent),
+        radial-gradient(1px 1px at 250px 160px, #ffffff, transparent),
+        radial-gradient(2px 2px at 300px 90px, #cfe8ff, transparent);
+    background-repeat: repeat;
+    background-size: 350px 200px;
+    z-index: -1;
+    pointer-events: none;
+    animation: starTwinkle 3.4s ease-in-out infinite alternate;
+}
+
+@keyframes starTwinkle {
+    0% { opacity: 0.20; }
+    100% { opacity: 0.45; }
+}
+
+.container {
+    padding: 20px;
+}
+
+.card {
+    background: #1e293b;
+    border-radius: 15px;
+    padding: 20px;
+    margin: 15px auto;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+}
+
+h2 {
+    margin-bottom: 10px;
+}
+
+.info {
+    font-size: 16px;
+    margin: 10px 0;
+}
+
+.price {
+    font-size: 28px;
+    color: #22c55e;
+    margin: 15px 0;
+}
+
+.pay-btn {
+    display: block;
+    margin: 15px auto;
+    padding: 14px;
+    width: 80%;
+    border-radius: 10px;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.wechat { background: #22c55e; }
+.alipay { background: #1677ff; }
+
+/* 支付成功弹窗 */
+.success {
+    display: none;
+    position: fixed;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #22c55e;
+    padding: 20px;
+    border-radius: 10px;
+    font-size: 18px;
+    z-index: 99;
+}
+
+/* 支付确认弹窗 */
+.confirm-box {
+    display: none;
+    position: fixed;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #1e293b;
+    border: 1px solid #fff;
+    padding: 25px;
+    border-radius: 10px;
+    font-size: 18px;
+    z-index: 100;
+}
+.confirm-btn {
+    margin: 20px 10px 0;
+    padding: 8px 25px;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    background: #64748b;
+}
+
+/* 支付须知滚动容器 */
+.notice-card {
+    background: #1e293b;
+    border-radius: 15px;
+    padding: 20px;
+    margin: 15px auto;
+    width: 90%;
+    max-width: 400px;
+    height: 180px;
+    overflow: hidden;
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    text-align: left;
+    line-height: 1.8;
+    font-size: 15px;
+}
+
+.scroll-wrap {
+    animation: autoScroll 25s linear infinite;
+}
+
+@keyframes autoScroll {
+    0% { transform: translateY(0); }
+    88% { transform: translateY(-100%); }
+    100% { transform: translateY(-100%); }
+}
+
+/* ========== 底部导航栏（永久固定 + 全图标 + 样式与首页完全统一） ========== */
+.tab-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 65px;
+    background: #0a192f;
+    display: flex;
+    border-top: 1px solid rgba(0,240,255,0.2);
+    z-index: 9999; /* 最高层级，永不被遮挡 */
+}
+.tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    font-size: 12px;
+    cursor: pointer;
+}
+.tab-item i {
+    font-size: 22px;
+    margin-bottom: 4px;
+}
+/* 页面激活高亮色（当前为缴费页，缴费项高亮） */
+.nav-active {
+    color: #00f0ff;
+}
+a{
+    text-decoration: none;
+    color: #fff;
+}
+/* ====================================================================== */
+</style>
+</head>
+
+<body>
+<div class="container">
+    <div class="card">
+        <h2>🚗 停车订单</h2>
+        <div class="info">车位号：A区:A001</div>
+        <div class="info">入场时间：上午 09:10</div>
+        <div class="info">出场时间：下午 14:20</div>
+        <div class="info">总计停放时长：5小时10分</div>
+        <div class="price">￥<span id="money">25</span></div>
+    </div>
+
+    <div class="card">
+        <h2>💳 选择支付方式</h2>
+        <button class="pay-btn wechat" onclick="openConfirm('微信')">微信支付（点击直接支付）</button>
+        <button class="pay-btn alipay" onclick="openConfirm('支付宝')">支付宝支付（点击直接支付）</button>
+    </div>
+
+    <div class="notice-card">
+        <div class="scroll-wrap">
+            <h3 style="text-align:center;margin-bottom:10px;font-size:17px;">📄 车位支付须知</h3>
+            <p>1. 车辆驶过停车场闸杆，系统自动判定为<strong>入场完成</strong>；车辆驶出停车场、闸杆落下后，判定为离场完成，停车计时同步结束。</p>
+            <p>2. 收费规则：入场后<strong>1小时内免费</strong>；停放时长超出1小时后，<strong>每1小时收费5元</strong>，不足1小时按1小时计费。</p>
+            <p>3. 停车费用由系统根据实际停放时长自动核算，费用明细可在订单页面查看。</p>
+            <p>4. 请在离场前完成缴费，缴费成功后车位自动释放；未完成缴费的车辆，离场闸杆无法抬杆放行。</p>
+            <p>5. 如有费用疑问，请联系停车场现场工作人员核对。</p>
+        </div>
+    </div>
+</div>
+
+<!-- 支付确认弹窗 -->
+<div class="confirm-box" id="confirmBox">
+    <p id="confirmText"></p>
+    <button class="confirm-btn" onclick="doPay()">是</button>
+    <button class="confirm-btn" onclick="closeConfirm()">否</button>
+</div>
+
+<!-- 支付成功提示框 -->
+<div class="success" id="successBox">✅ 支付成功！正在释放车位...</div>
+
+<!-- 底部导航栏：补全全部4个图标 + 跳转链接 + 缴费项高亮激活 -->
+<div class="tab-bar">
+    <!-- 首页 -->
+    <div class="tab-item" onclick="location.href='index.html'">
+        <i class="fa fa-home"></i>
+        <span>首页</span>
+    </div>
+    <!-- 寻车 -->
+    <div class="tab-item" onclick="location.href='xc.html'">
+        <i class="fa fa-map-marker"></i>
+        <span>寻车</span>
+    </div>
+    <!-- 缴费（当前页面，高亮激活） -->
+    <div class="tab-item nav-active">
+        <i class="fa fa-credit-card"></i>
+        <span>缴费</span>
+    </div>
+    <!-- 我的 -->
+    <div class="tab-item">
+        <i class="fa fa-user"></i>
+        <span>我的</span>
+    </div>
+</div>
+
+<script>
+let pricePerHour = 5;
+let currentPayType = "";
+
+function init() {
+    document.getElementById("money").innerText = 25;
+}
+init();
+
+function openConfirm(type) {
+    currentPayType = type;
+    let totalMoney = document.getElementById("money").innerText;
+    document.getElementById("confirmText").innerText = `是否支付 ￥${totalMoney} 元？`;
+    document.getElementById("confirmBox").style.display = "block";
+}
+
+function closeConfirm() {
+    document.getElementById("confirmBox").style.display = "none";
+}
+
+function doPay() {
+    document.getElementById("confirmBox").style.display = "none";
+    document.getElementById("successBox").style.display = "block";
+
+    setTimeout(() => {
+        document.getElementById("successBox").innerText =
+            `🚗 使用${currentPayType}支付成功，车位已释放！`;
+    }, 1500);
+}
+</script>
+</body>
+</html><div class="tab-bar">
+    <div class="tab-item" onclick="location.href='index.html'">
+        <i class="fa fa-home"></i>
+        <span>首页</span>
+    </div>
+    <div class="tab-item" onclick="location.href='xc.html'">
+        <i class="fa fa-map-marker"></i>
+        <span>寻车</span>
+    </div>
+    <div class="tab-item" onclick="location.href='jf.html'">
+        <i class="fa fa-credit-card"></i>
+        <span>缴费</span>
+    </div>
+    <div class="tab-item" onclick="location.href='wd.html'">
+        <i class="fa fa-user"></i>
+        <span>我的</span>
+    </div>
+</div><div class="tab-bar">
+    <div class="tab-item" onclick="location.href='index.html'">
+        <i class="fa fa-home"></i>
+        <span>首页</span>
+    </div>
+    <div class="tab-item" onclick="location.href='xc.html'">
+        <i class="fa fa-map-marker"></i>
+        <span>寻车</span>
+    </div>
+    <div class="tab-item nav-active" onclick="location.href='jf.html'">
+        <i class="fa fa-credit-card"></i>
+        <span>缴费</span>
+    </div>
+    <div class="tab-item" onclick="location.href='wd.html'">
+        <i class="fa fa-user"></i>
+        <span>我的</span>
+    </div>
+</div>
